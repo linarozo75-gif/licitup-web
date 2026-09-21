@@ -2,218 +2,76 @@
 
 import { useEffect, useState } from 'react';
 
-const CAMPOS_INICIALES = {
-  razon_social: '',
-  nombre_comercial: '',
-  nit: '',
-  tipo_sociedad: '',
-  fecha_constitucion: '',
-  duracion_sociedad: '',
-  domicilio_ciudad_direccion: '',
-  sucursales: '',
-  fecha_camara_comercio: '',
-  matricula_renovada_anio: '',
-  ciiu_principal: '',
-  ciiu_secundarios: '',
-  objeto_social: '',
-  responsabilidades_tributarias: '',
-  tamano_empresa: '',
-  correo_notificaciones: '',
-  telefono_contacto: '',
-  sitio_web: '',
-  rl_nombre_completo: '',
-  rl_tipo_num_documento: '',
-  rl_ciudad_expedicion: '',
-  rl_correo: '',
-  rl_fecha_nombramiento: '',
-  rl_suplente: '',
-  rl_tiene_limite_monto: null,
-  rl_monto_maximo: '',
-  rl_organo_autoriza: '',
-  rl_facultades_ofertar: null,
-  rl_restricciones_estatutarias: '',
-  jur_camara_comercio_vigente: null,
-  jur_rup_vigente_cierre: null,
-  jur_antecedentes_ok: null,
-  jur_formatos_propios_ok: null,
-  jur_rut_vigente: null,
-  jur_documentos_financieros_ok: null,
-  cump_tiene_revisor_fiscal: null,
-  cump_revisor_fiscal_nombre_tp: '',
-  cump_contador_nombre_tp: '',
-  cump_certificado_ss_parafiscales_30d: null,
-  cump_aportes_al_dia: null,
-  cump_antecedentes_fiscales_empresa: '',
-  cump_antecedentes_fiscales_rl: '',
-  cump_antecedentes_disciplinarios_empresa: '',
-  cump_antecedentes_disciplinarios_rl: '',
-  cump_antecedentes_judiciales_rl: '',
-  cump_medidas_correctivas_rnmc_rl: '',
-  cump_redam_rl: '',
-  cump_inhabilidades_delitos_menores_rl: '',
-  cump_tiene_sanciones_5_anios: null,
-  cump_detalle_sanciones: '',
-  cump_tiene_procesos_judiciales: null,
-  cump_detalle_procesos_judiciales: '',
-  cump_puntaje_sgsst: '',
-  cump_politica_proteccion_datos: null,
-  cump_programa_etica_sarlaft: null,
-  cump_secop_ii_activo: null,
-  fin_estado_rup: '',
-  fin_fecha_renovacion_rup: '',
-  fin_fecha_corte_informacion: '',
-  fin_k_residual: '',
-  fin_activo_corriente: '',
-  fin_activo_total: '',
-  fin_pasivo_corriente: '',
-  fin_pasivo_total: '',
-  fin_patrimonio: '',
-  fin_ingresos_operacionales: '',
-  fin_utilidad_operacional: '',
-  fin_utilidad_neta: '',
-  fin_gastos_intereses: '',
-  fin_regimen: 'normal',
-  fin_indice_liquidez: '',
-  fin_indice_endeudamiento: '',
-  fin_razon_cobertura_intereses: '',
-  fin_capital_trabajo: '',
-  fin_rentabilidad_patrimonio: '',
-  fin_rentabilidad_activo: '',
-  fin_doc_estados_financieros_notas: null,
-  fin_doc_dictamen_revisor_fiscal: null,
-  fin_doc_declaracion_renta: null,
-  fin_doc_certificacion_bancaria: null,
-  cupos_corredor_seguros_seriedad: null,
-  cupos_capacidad_polizas_cumplimiento: null,
-  unspsc_codigos: '',
-  descripcion_servicios: '',
-};
-
-// Checklist general de viabilidad (preguntas del levantamiento original, antes de entrar al detalle del Excel)
-const PREGUNTAS_CHECKLIST_GENERAL = [
-  { key: 'jur_camara_comercio_vigente', texto: '¿Siempre puedes obtener una Cámara de Comercio vigente antes del cierre?' },
-  { key: 'jur_rup_vigente_cierre', texto: '¿Siempre puedes obtener un RUP vigente antes del cierre?' },
-  { key: 'jur_antecedentes_ok', texto: '¿Puedes tramitar antecedentes de Procuraduría, Contraloría, Policía, RNMC y REDAM sin problema?' },
-  { key: 'jur_formatos_propios_ok', texto: '¿Estás en capacidad de diligenciar los formatos propios que pida cada entidad (anticorrupción, tratamiento de datos, compromiso de integridad, etc.)?' },
-  { key: 'jur_rut_vigente', texto: '¿Cuentas con RUT vigente?' },
-  { key: 'jur_documentos_financieros_ok', texto: '¿Cuentas con documentos financieros (estados financieros del último año, certificación bancaria, declaración de renta al día, documentos del contador y revisor fiscal si aplica), entre otros?' },
-];
-
-// Preguntas Sí/No del Módulo 4 (Cumplimiento)
-const PREGUNTAS_CUMPLIMIENTO_SINO = [
-  { key: 'cump_tiene_revisor_fiscal', texto: '¿Tiene revisor fiscal?' },
-  { key: 'cump_aportes_al_dia', texto: '¿Está al día en aportes a seguridad social y parafiscales (sin deudas ni mora)?' },
-  { key: 'cump_tiene_sanciones_5_anios', texto: '¿Ha tenido multas, sanciones, caducidades o incumplimientos con entidades estatales en los últimos 5 años?' },
-  { key: 'cump_tiene_procesos_judiciales', texto: '¿Tiene procesos judiciales, arbitrales o embargos relevantes en su contra?' },
-  { key: 'cump_politica_proteccion_datos', texto: '¿Tiene política de protección de datos personales (Ley 1581 de 2012)?' },
-  { key: 'cump_programa_etica_sarlaft', texto: '¿Tiene programa de ética, SARLAFT o antisoborno?' },
-  { key: 'cump_secop_ii_activo', texto: '¿Tiene usuario activo en SECOP II y firma electrónica vigente?' },
-];
-
-// Preguntas de antecedentes: tres respuestas posibles en vez de Sí/No
-const PREGUNTAS_ANTECEDENTES = [
-  { key: 'cump_antecedentes_fiscales_empresa', texto: 'Antecedentes fiscales (Contraloría) — empresa' },
-  { key: 'cump_antecedentes_fiscales_rl', texto: 'Antecedentes fiscales (Contraloría) — representante legal' },
-  { key: 'cump_antecedentes_disciplinarios_empresa', texto: 'Antecedentes disciplinarios (Procuraduría) — empresa' },
-  { key: 'cump_antecedentes_disciplinarios_rl', texto: 'Antecedentes disciplinarios (Procuraduría) — representante legal' },
-  { key: 'cump_antecedentes_judiciales_rl', texto: 'Antecedentes judiciales (Policía) — representante legal' },
-  { key: 'cump_medidas_correctivas_rnmc_rl', texto: 'Medidas correctivas (RNMC) — representante legal' },
-  { key: 'cump_redam_rl', texto: 'REDAM (deudores alimentarios morosos) — representante legal' },
-  { key: 'cump_inhabilidades_delitos_menores_rl', texto: 'Inhabilidades por delitos contra menores — representante legal' },
-];
-
-const OPCIONES_ANTECEDENTES = [
+const TIPOS_CLIENTE = [
   { value: '', label: 'Selecciona...' },
-  { value: 'sin_antecedentes', label: 'Sin antecedentes / No registra' },
-  { value: 'registra_antecedentes', label: 'Registra antecedentes' },
-  { value: 'pendiente_consulta', label: 'Pendiente de consulta' },
+  { value: 'publica', label: 'Pública' },
+  { value: 'privada', label: 'Privada' },
 ];
 
-const INDICADORES_FINANCIEROS = [
-  { key: 'fin_indice_liquidez', label: 'Índice de Liquidez' },
-  { key: 'fin_indice_endeudamiento', label: 'Índice de Endeudamiento (%)' },
-  { key: 'fin_razon_cobertura_intereses', label: 'Razón de Cobertura de Intereses' },
-  { key: 'fin_capital_trabajo', label: 'Capital de Trabajo (COP)' },
-  { key: 'fin_rentabilidad_patrimonio', label: 'Rentabilidad del Patrimonio (%)' },
-  { key: 'fin_rentabilidad_activo', label: 'Rentabilidad del Activo (%)' },
-];
-
-const TIPOS_SOCIEDAD = [
+const ESTADOS_CONTRATO = [
   { value: '', label: 'Selecciona...' },
-  { value: 'sas', label: 'S.A.S.' },
-  { value: 'ltda', label: 'Ltda.' },
-  { value: 'sa', label: 'S.A.' },
-  { value: 'persona_natural', label: 'Persona natural' },
-  { value: 'sucursal_extranjera', label: 'Sucursal de sociedad extranjera' },
-  { value: 'cooperativa_esal', label: 'Cooperativa / ESAL' },
-  { value: 'otra', label: 'Otra' },
+  { value: 'en_ejecucion', label: 'En ejecución' },
+  { value: 'terminado', label: 'Terminado' },
+  { value: 'liquidado', label: 'Liquidado' },
 ];
 
-const TAMANOS_EMPRESA = [
-  { value: '', label: 'Selecciona...' },
-  { value: 'microempresa', label: 'Microempresa' },
-  { value: 'pequena', label: 'Pequeña' },
-  { value: 'mediana', label: 'Mediana' },
-  { value: 'grande', label: 'Grande' },
-];
-
-const ESTADOS_RUP = [
-  { value: '', label: 'Selecciona...' },
-  { value: 'en_firme', label: 'En firme' },
-  { value: 'en_proceso_renovacion', label: 'En proceso de renovación' },
-  { value: 'suspendido', label: 'Suspendido' },
-  { value: 'cancelado', label: 'Cancelado' },
-];
-
-// Documentos financieros adicionales al RUP (Módulo 5): antes se pedía adjuntar, ahora solo Sí/No
-// "dependeDe" = solo se muestra si esa otra pregunta del formulario está en Sí
-const DOCUMENTOS_FINANCIEROS_ADICIONALES = [
-  { key: 'fin_doc_estados_financieros_notas', texto: 'Estados financieros del último cierre con notas' },
-  { key: 'fin_doc_dictamen_revisor_fiscal', texto: '¿Los estados financieros tienen dictamen del revisor fiscal?', dependeDe: 'cump_tiene_revisor_fiscal' },
-  { key: 'fin_doc_declaracion_renta', texto: 'Declaración de renta del último año gravable' },
-  { key: 'fin_doc_certificacion_bancaria', texto: 'Certificación bancaria' },
-];
-
-// Módulo 3 (Accionistas): puede haber varios por empresa, así que tiene su propia tabla y su
-// propia API, pero vive dentro de esta misma página — no en una pestaña aparte.
-const TIPOS_DOCUMENTO = [
-  { value: '', label: 'Selecciona...' },
-  { value: 'cc', label: 'Cédula de ciudadanía (CC)' },
-  { value: 'ce', label: 'Cédula de extranjería (CE)' },
-  { value: 'nit', label: 'NIT' },
-  { value: 'pasaporte', label: 'Pasaporte' },
-  { value: 'otro', label: 'Otro' },
-];
-
-const ACCIONISTA_VACIO = {
+const CONTRATO_VACIO = {
   id: null,
-  nombre_razon_social: '',
-  tipo_documento: '',
-  numero_documento: '',
+  numero_consecutivo_rup: '',
+  cliente_entidad: '',
+  tipo_cliente: '',
+  numero_referencia_contrato: '',
+  objeto_exacto: '',
+  actividades_alcance: '',
+  valor_inicial: '',
+  adiciones: '',
+  valor_final: '',
+  valor_smmlv: '',
+  fecha_inicio: '',
+  fecha_terminacion: '',
+  estado_contrato: '',
+  unspsc_codigos: '',
+  ejecutado_ut_consorcio: null,
   porcentaje_participacion: '',
-  pais_domicilio: '',
-  beneficiario_final: null,
-  pep: null,
-  servidor_publico_pariente: null,
-  representante_legal_directivo: null,
-  observaciones: '',
+  valor_final_ponderado: '',
+  cantidades_ejecutadas: '',
+  persona_certifica: '',
+  certificacion_firmada: null,
+  etiquetas_tematicas: '',
 };
 
-// Columnas que espera el importador de accionistas, EN ESTE ORDEN — misma plantilla que se descarga.
-const COLUMNAS_IMPORTACION_ACCIONISTAS = [
-  { header: 'Nombre o razón social', key: 'nombre_razon_social', tipo: 'texto' },
-  { header: 'Tipo de documento (CC, CE, NIT, Pasaporte u Otro)', key: 'tipo_documento', tipo: 'tipo_documento' },
-  { header: 'Número de documento', key: 'numero_documento', tipo: 'texto' },
+// Columnas que espera el importador, EN ESTE ORDEN — misma plantilla que se descarga.
+const COLUMNAS_IMPORTACION = [
+  { header: 'Nº consecutivo en el RUP', key: 'numero_consecutivo_rup', tipo: 'texto' },
+  { header: 'Cliente / entidad contratante', key: 'cliente_entidad', tipo: 'texto' },
+  { header: 'Tipo de cliente (Publica o Privada)', key: 'tipo_cliente', tipo: 'tipo_cliente' },
+  { header: 'Nº o referencia del contrato', key: 'numero_referencia_contrato', tipo: 'texto' },
+  { header: 'Objeto exacto', key: 'objeto_exacto', tipo: 'texto' },
+  { header: 'Actividades realizadas y alcance', key: 'actividades_alcance', tipo: 'texto' },
+  { header: 'Valor inicial COP (sin puntos ni comas)', key: 'valor_inicial', tipo: 'numero' },
+  { header: 'Adiciones COP (sin puntos ni comas)', key: 'adiciones', tipo: 'numero' },
+  { header: 'Valor final COP (sin puntos ni comas)', key: 'valor_final', tipo: 'numero' },
+  { header: 'Valor en SMMLV', key: 'valor_smmlv', tipo: 'numero' },
+  { header: 'Fecha de inicio (aaaa-mm-dd)', key: 'fecha_inicio', tipo: 'fecha' },
+  { header: 'Fecha de terminación (aaaa-mm-dd)', key: 'fecha_terminacion', tipo: 'fecha' },
+  { header: 'Estado (En ejecucion, Terminado o Liquidado)', key: 'estado_contrato', tipo: 'estado_contrato' },
+  { header: 'Códigos UNSPSC (separados por ;)', key: 'unspsc_codigos', tipo: 'texto' },
+  { header: '¿Ejecutado en UT o Consorcio? (Si/No)', key: 'ejecutado_ut_consorcio', tipo: 'sino' },
   { header: '% de participación', key: 'porcentaje_participacion', tipo: 'numero' },
-  { header: 'País de domicilio', key: 'pais_domicilio', tipo: 'texto' },
-  { header: '¿Beneficiario final? (Si/No)', key: 'beneficiario_final', tipo: 'sino' },
-  { header: '¿Persona expuesta políticamente (PEP)? (Si/No)', key: 'pep', tipo: 'sino' },
-  { header: '¿Es servidor público o pariente de uno? (Si/No)', key: 'servidor_publico_pariente', tipo: 'sino' },
-  { header: '¿Es representante legal o directivo? (Si/No)', key: 'representante_legal_directivo', tipo: 'sino' },
-  { header: 'Observaciones', key: 'observaciones', tipo: 'texto' },
+  { header: 'Valor final ponderado COP', key: 'valor_final_ponderado', tipo: 'numero' },
+  { header: 'Cantidades ejecutadas', key: 'cantidades_ejecutadas', tipo: 'texto' },
+  { header: 'Persona que certifica', key: 'persona_certifica', tipo: 'texto' },
+  { header: '¿Certificación firmada? (Si/No)', key: 'certificacion_firmada', tipo: 'sino' },
+  { header: 'Etiquetas temáticas', key: 'etiquetas_tematicas', tipo: 'texto' },
 ];
 
-const FILA_EJEMPLO_ACCIONISTAS = ['María Gómez Pérez', 'CC', '52000000', '60', 'Colombia', 'Si', 'No', 'No', 'Si', ''];
+const FILA_EJEMPLO = [
+  '12', 'Ministerio Ejemplo de Tecnologías', 'Publica', 'CO-045-2022',
+  'Prestar servicios de desarrollo, soporte y mantenimiento del sistema de información misional',
+  'Desarrollo de 6 módulos, 2 integraciones por API, soporte nivel 2', '850000000', '120000000',
+  '970000000', '680.4', '2022-02-01', '2023-06-30', 'Liquidado', '81111500;81112000', 'No', '', '',
+  '120 usuarios; 6 módulos', 'Ana Ruiz - Jefe de TI - 3100000000', 'Si', 'software;integracion',
+];
 
 function normalizar(texto) {
   return String(texto ?? '')
@@ -232,22 +90,38 @@ function convertirValor(valorCrudo, tipo) {
       const n = Number(limpio);
       return Number.isNaN(n) ? null : n;
     }
+    case 'fecha': {
+      if (/^\d{4}-\d{1,2}-\d{1,2}$/.test(valor)) {
+        const [a, m, d] = valor.split('-');
+        return `${a}-${m.padStart(2, '0')}-${d.padStart(2, '0')}`;
+      }
+      const m1 = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (m1) return `${m1[3]}-${m1[2].padStart(2, '0')}-${m1[1].padStart(2, '0')}`;
+      return null;
+    }
     case 'sino': {
       const n = normalizar(valor);
       if (n === 'si' || n === 'sí') return true;
       if (n === 'no') return false;
       return null;
     }
-    case 'tipo_documento': {
+    case 'tipo_cliente': {
       const n = normalizar(valor);
-      if (['cc', 'ce', 'nit', 'pasaporte'].includes(n)) return n;
-      return 'otro';
+      if (n === 'publica') return 'publica';
+      if (n === 'privada') return 'privada';
+      return null;
+    }
+    case 'estado_contrato': {
+      const n = normalizar(valor).replace(/\s+/g, '_');
+      if (['en_ejecucion', 'terminado', 'liquidado'].includes(n)) return n;
+      return null;
     }
     default:
       return valor;
   }
 }
 
+// Parser de CSV que respeta comillas (campos con comas o saltos de línea adentro)
 function parsearCSV(texto) {
   const filas = [];
   let fila = [];
@@ -275,6 +149,7 @@ function parsearCSV(texto) {
   return filas.filter((f) => f.some((v) => v.trim() !== ''));
 }
 
+// Carga la librería para leer archivos de Excel directamente en el navegador (solo si hace falta)
 function cargarLectorExcel() {
   return new Promise((resolve, reject) => {
     if (window.XLSX) { resolve(window.XLSX); return; }
@@ -297,7 +172,7 @@ async function leerFilasDelArchivo(archivo) {
     const buffer = await archivo.arrayBuffer();
     const libro = XLSX.read(buffer, { type: 'array', cellDates: true });
     const hoja = libro.Sheets[libro.SheetNames[0]];
-    const filasCrudas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false });
+    const filasCrudas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
     return filasCrudas
       .map((fila) => fila.map((v) => (v === undefined || v === null ? '' : String(v))))
       .filter((f) => f.some((v) => v.trim() !== ''));
@@ -305,9 +180,9 @@ async function leerFilasDelArchivo(archivo) {
   throw new Error('Formato no reconocido. Sube un archivo .csv, .xlsx o .xls.');
 }
 
-function descargarPlantillaAccionistasCSV() {
-  const encabezados = COLUMNAS_IMPORTACION_ACCIONISTAS.map((c) => c.header);
-  const filas = [encabezados, FILA_EJEMPLO_ACCIONISTAS];
+function descargarPlantillaCSV() {
+  const encabezados = COLUMNAS_IMPORTACION.map((c) => c.header);
+  const filas = [encabezados, FILA_EJEMPLO];
   const csv = filas
     .map((fila) => fila.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
     .join('\r\n');
@@ -315,23 +190,22 @@ function descargarPlantillaAccionistasCSV() {
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
-  a.download = 'plantilla_accionistas_licitup.csv';
+  a.download = 'plantilla_experiencia_licitup.csv';
   a.click();
   URL.revokeObjectURL(url);
 }
 
-async function descargarPlantillaAccionistasExcel() {
+async function descargarPlantillaExcel() {
   const XLSX = await cargarLectorExcel();
-  const encabezados = COLUMNAS_IMPORTACION_ACCIONISTAS.map((c) => c.header);
-  const datos = [encabezados, FILA_EJEMPLO_ACCIONISTAS];
+  const encabezados = COLUMNAS_IMPORTACION.map((c) => c.header);
+  const datos = [encabezados, FILA_EJEMPLO];
   const hoja = XLSX.utils.aoa_to_sheet(datos);
   hoja['!cols'] = encabezados.map(() => ({ wch: 26 }));
   const libro = XLSX.utils.book_new();
-  XLSX.utils.book_append_sheet(libro, hoja, 'Accionistas');
-  XLSX.writeFile(libro, 'plantilla_accionistas_licitup.xlsx');
+  XLSX.utils.book_append_sheet(libro, hoja, 'Experiencia');
+  XLSX.writeFile(libro, 'plantilla_experiencia_licitup.xlsx');
 }
 
-// Componente reutilizable para una pregunta Sí/No, con soporte para depender de otra pregunta
 function PreguntaSiNo({ texto, valor, onChange }) {
   return (
     <div style={estilos.filaPregunta}>
@@ -348,687 +222,6 @@ function PreguntaSiNo({ texto, valor, onChange }) {
   );
 }
 
-export default function MiEmpresaPage() {
-  const [form, setForm] = useState(CAMPOS_INICIALES);
-  const [cargando, setCargando] = useState(true);
-  const [guardando, setGuardando] = useState(false);
-  const [mensaje, setMensaje] = useState(null);
-
-  const [accionistas, setAccionistas] = useState([]);
-  const [cargandoAccionistas, setCargandoAccionistas] = useState(true);
-  const [draftAccionista, setDraftAccionista] = useState(null);
-  const [guardandoAccionista, setGuardandoAccionista] = useState(false);
-  const [mensajeAccionistas, setMensajeAccionistas] = useState(null);
-  const [importandoAccionistas, setImportandoAccionistas] = useState(false);
-  const [preparandoPlantillaAccionistas, setPreparandoPlantillaAccionistas] = useState(false);
-
-  useEffect(() => {
-    fetch('/api/mi-empresa')
-      .then((r) => r.json())
-      .then((data) => {
-        if (data.empresa) {
-          const empresa = { ...data.empresa };
-          // Las fechas llegan como timestamp ISO completo; los campos <input type="date"> solo entienden "aaaa-mm-dd"
-          for (const campoFecha of ['fecha_constitucion', 'fecha_camara_comercio', 'rl_fecha_nombramiento', 'fin_fecha_renovacion_rup', 'fin_fecha_corte_informacion']) {
-            if (empresa[campoFecha]) {
-              empresa[campoFecha] = String(empresa[campoFecha]).slice(0, 10);
-            }
-          }
-          setForm({ ...CAMPOS_INICIALES, ...empresa });
-        }
-      })
-      .catch(() => setMensaje({ tipo: 'error', texto: 'No se pudo cargar el perfil guardado.' }))
-      .finally(() => setCargando(false));
-  }, []);
-
-  function cargarAccionistas() {
-    setCargandoAccionistas(true);
-    fetch('/api/mi-empresa/accionistas')
-      .then((r) => r.json())
-      .then((data) => setAccionistas(data.accionistas ?? []))
-      .catch(() => setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo cargar la lista de accionistas.' }))
-      .finally(() => setCargandoAccionistas(false));
-  }
-
-  useEffect(() => { cargarAccionistas(); }, []);
-
-  function actualizarCampo(key, value) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function guardar(e) {
-    e.preventDefault();
-    setGuardando(true);
-    setMensaje(null);
-    try {
-      // Un campo vacío se manda como null, no como '' — así la base de datos no rechaza
-      // fechas o números vacíos, y "guardar incompleto" funciona en cualquier campo.
-      const payload = Object.fromEntries(
-        Object.entries(form).map(([key, value]) => [key, value === '' ? null : value])
-      );
-      const res = await fetch('/api/mi-empresa', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error('save_failed');
-      setMensaje({ tipo: 'ok', texto: 'Perfil guardado.' });
-    } catch {
-      setMensaje({ tipo: 'error', texto: 'No se pudo guardar. Intenta de nuevo.' });
-    } finally {
-      setGuardando(false);
-    }
-  }
-
-  function abrirNuevoAccionista() {
-    setDraftAccionista({ ...ACCIONISTA_VACIO });
-    setMensajeAccionistas(null);
-  }
-
-  function abrirEditarAccionista(fila) {
-    setDraftAccionista({ ...fila });
-    setMensajeAccionistas(null);
-  }
-
-  function cancelarAccionista() {
-    setDraftAccionista(null);
-  }
-
-  function actualizarDraftAccionista(key, value) {
-    setDraftAccionista((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function guardarAccionista() {
-    setGuardandoAccionista(true);
-    setMensajeAccionistas(null);
-    try {
-      const payload = Object.fromEntries(
-        Object.entries(draftAccionista).map(([key, value]) => [key, value === '' ? null : value])
-      );
-      const res = await fetch('/api/mi-empresa/accionistas', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
-      if (!res.ok) throw new Error('save_failed');
-      setDraftAccionista(null);
-      cargarAccionistas();
-    } catch {
-      setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo guardar el accionista. Intenta de nuevo.' });
-    } finally {
-      setGuardandoAccionista(false);
-    }
-  }
-
-  async function eliminarAccionista(id) {
-    if (!confirm('¿Eliminar este accionista?')) return;
-    try {
-      const res = await fetch(`/api/mi-empresa/accionistas?id=${id}`, { method: 'DELETE' });
-      if (!res.ok) throw new Error('delete_failed');
-      cargarAccionistas();
-    } catch {
-      setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo eliminar. Intenta de nuevo.' });
-    }
-  }
-
-  async function manejarArchivoImportadoAccionistas(e) {
-    const archivo = e.target.files?.[0];
-    e.target.value = '';
-    if (!archivo) return;
-
-    setImportandoAccionistas(true);
-    setMensajeAccionistas(null);
-    try {
-      const filas = await leerFilasDelArchivo(archivo);
-      const filasDeDatos = filas.slice(1);
-
-      let exitosas = 0;
-      const filasConError = [];
-
-      for (let i = 0; i < filasDeDatos.length; i++) {
-        const fila = filasDeDatos[i];
-        const payload = {};
-        COLUMNAS_IMPORTACION_ACCIONISTAS.forEach((col, idx) => {
-          payload[col.key] = convertirValor(fila[idx], col.tipo);
-        });
-
-        try {
-          const res = await fetch('/api/mi-empresa/accionistas', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload),
-          });
-          if (!res.ok) throw new Error('row_failed');
-          exitosas++;
-        } catch {
-          filasConError.push(i + 2);
-        }
-      }
-
-      cargarAccionistas();
-      if (filasConError.length === 0) {
-        setMensajeAccionistas({ tipo: 'ok', texto: `Se importaron ${exitosas} accionista(s) correctamente.` });
-      } else {
-        setMensajeAccionistas({
-          tipo: 'error',
-          texto: `Se importaron ${exitosas} accionista(s). Hubo un problema en la(s) fila(s): ${filasConError.join(', ')}.`,
-        });
-      }
-    } catch (error) {
-      setMensajeAccionistas({ tipo: 'error', texto: error?.message || 'No se pudo leer el archivo. Verifica que sea un CSV o Excel válido.' });
-    } finally {
-      setImportandoAccionistas(false);
-    }
-  }
-
-  const sumaParticipacionAccionistas = accionistas.reduce((acc, a) => acc + (Number(a.porcentaje_participacion) || 0), 0);
-
-  if (cargando) {
-    return <main style={estilos.pagina}><p>Cargando perfil…</p></main>;
-  }
-
-  return (
-    <main style={estilos.pagina}>
-      <nav style={estilos.tabs}>
-        <a href="/mi-empresa" style={{ ...estilos.tab, ...estilos.tabActiva }}>Mi Empresa</a>
-        <a href="/mi-empresa/experiencia" style={estilos.tab}>Experiencia</a>
-      </nav>
-
-      <h1 style={estilos.titulo}>Mi Empresa</h1>
-      <p style={estilos.subtitulo}>
-        Este perfil alimenta el motor de evaluación. Puedes guardarlo incompleto y volver después —
-        lo que falte simplemente no se podrá verificar todavía.
-      </p>
-
-      <form
-        onSubmit={guardar}
-        onKeyDown={(e) => {
-          // Evita que Enter en cualquier campo (incluido el de Accionistas) dispare el envío del formulario.
-          if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
-        }}
-        style={estilos.formulario}
-      >
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Datos básicos</h2>
-          <p style={estilos.ayuda}>Cópialos tal como aparecen en la Cámara de Comercio, el RUT y el RUP — las diferencias entre documentos generan observaciones de la entidad.</p>
-          <div style={estilos.grid2}>
-            <Campo label="Razón social">
-              <input style={estilos.input} value={form.razon_social ?? ''} onChange={(e) => actualizarCampo('razon_social', e.target.value)} />
-            </Campo>
-            <Campo label="Nombre comercial">
-              <input style={estilos.input} value={form.nombre_comercial ?? ''} onChange={(e) => actualizarCampo('nombre_comercial', e.target.value)} />
-            </Campo>
-            <Campo label="NIT (con dígito de verificación)">
-              <input style={estilos.input} value={form.nit ?? ''} onChange={(e) => actualizarCampo('nit', e.target.value)} />
-            </Campo>
-            <Campo label="Tipo de sociedad">
-              <select style={estilos.input} value={form.tipo_sociedad ?? ''} onChange={(e) => actualizarCampo('tipo_sociedad', e.target.value)}>
-                {TIPOS_SOCIEDAD.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </Campo>
-            <Campo label="Fecha de constitución">
-              <input type="date" style={estilos.input} value={form.fecha_constitucion ?? ''} onChange={(e) => actualizarCampo('fecha_constitucion', e.target.value)} />
-            </Campo>
-            <Campo label="Duración de la sociedad (fecha o 'Indefinida')">
-              <input style={estilos.input} placeholder="Indefinida / 31/12/2060" value={form.duracion_sociedad ?? ''} onChange={(e) => actualizarCampo('duracion_sociedad', e.target.value)} />
-            </Campo>
-            <Campo label="Ciudad y dirección del domicilio principal">
-              <input style={estilos.input} value={form.domicilio_ciudad_direccion ?? ''} onChange={(e) => actualizarCampo('domicilio_ciudad_direccion', e.target.value)} />
-            </Campo>
-            <Campo label="Sucursales o agencias">
-              <input style={estilos.input} value={form.sucursales ?? ''} onChange={(e) => actualizarCampo('sucursales', e.target.value)} />
-            </Campo>
-            <Campo label="Fecha de expedición del certificado de Cámara de Comercio">
-              <input type="date" style={estilos.input} value={form.fecha_camara_comercio ?? ''} onChange={(e) => actualizarCampo('fecha_camara_comercio', e.target.value)} />
-            </Campo>
-            <Campo label="Matrícula mercantil renovada hasta (año)">
-              <input type="number" style={estilos.input} value={form.matricula_renovada_anio ?? ''} onChange={(e) => actualizarCampo('matricula_renovada_anio', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-          </div>
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Representación legal y facultades</h2>
-          <p style={estilos.ayuda}>Define si la empresa puede presentar oferta por sí sola según el valor del proceso.</p>
-          <div style={estilos.grid2}>
-            <Campo label="Nombre completo del representante legal">
-              <input style={estilos.input} value={form.rl_nombre_completo ?? ''} onChange={(e) => actualizarCampo('rl_nombre_completo', e.target.value)} />
-            </Campo>
-            <Campo label="Tipo y número de documento">
-              <input style={estilos.input} placeholder="CC 52.000.000" value={form.rl_tipo_num_documento ?? ''} onChange={(e) => actualizarCampo('rl_tipo_num_documento', e.target.value)} />
-            </Campo>
-            <Campo label="Ciudad de expedición del documento">
-              <input style={estilos.input} value={form.rl_ciudad_expedicion ?? ''} onChange={(e) => actualizarCampo('rl_ciudad_expedicion', e.target.value)} />
-            </Campo>
-            <Campo label="Correo electrónico del representante legal">
-              <input type="email" style={estilos.input} value={form.rl_correo ?? ''} onChange={(e) => actualizarCampo('rl_correo', e.target.value)} />
-            </Campo>
-            <Campo label="Fecha de nombramiento o posesión">
-              <input type="date" style={estilos.input} value={form.rl_fecha_nombramiento ?? ''} onChange={(e) => actualizarCampo('rl_fecha_nombramiento', e.target.value)} />
-            </Campo>
-            <Campo label="Suplente del representante legal (nombre y documento)">
-              <input style={estilos.input} value={form.rl_suplente ?? ''} onChange={(e) => actualizarCampo('rl_suplente', e.target.value)} />
-            </Campo>
-          </div>
-
-          <h3 style={estilos.tituloSubseccion}>Facultades para contratar</h3>
-          <div style={estilos.filaPregunta}>
-            <span style={estilos.textoPregunta}>¿Tiene límite de monto para contratar?</span>
-            <div style={estilos.opcionesSiNo}>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="rl_tiene_limite_monto" checked={form.rl_tiene_limite_monto === true} onChange={() => actualizarCampo('rl_tiene_limite_monto', true)} /> Sí
-              </label>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="rl_tiene_limite_monto" checked={form.rl_tiene_limite_monto === false} onChange={() => actualizarCampo('rl_tiene_limite_monto', false)} /> No
-              </label>
-            </div>
-          </div>
-          {form.rl_tiene_limite_monto === true && (
-            <div style={estilos.grid2}>
-              <Campo label="Monto máximo que puede firmar sin autorización (COP)">
-                <input type="number" step="any" style={estilos.input} value={form.rl_monto_maximo ?? ''} onChange={(e) => actualizarCampo('rl_monto_maximo', e.target.value === '' ? '' : Number(e.target.value))} />
-              </Campo>
-              <Campo label="Órgano que autoriza montos superiores (junta, asamblea)">
-                <input style={estilos.input} value={form.rl_organo_autoriza ?? ''} onChange={(e) => actualizarCampo('rl_organo_autoriza', e.target.value)} />
-              </Campo>
-            </div>
-          )}
-          <div style={estilos.filaPregunta}>
-            <span style={estilos.textoPregunta}>¿Sus facultades incluyen presentar ofertas y firmar contratos con entidades públicas?</span>
-            <div style={estilos.opcionesSiNo}>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="rl_facultades_ofertar" checked={form.rl_facultades_ofertar === true} onChange={() => actualizarCampo('rl_facultades_ofertar', true)} /> Sí
-              </label>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="rl_facultades_ofertar" checked={form.rl_facultades_ofertar === false} onChange={() => actualizarCampo('rl_facultades_ofertar', false)} /> No
-              </label>
-            </div>
-          </div>
-          <Campo label="Restricciones adicionales en los estatutos (descripción)">
-            <textarea
-              style={{ ...estilos.input, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }}
-              value={form.rl_restricciones_estatutarias ?? ''}
-              onChange={(e) => actualizarCampo('rl_restricciones_estatutarias', e.target.value)}
-            />
-          </Campo>
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Accionistas</h2>
-          <p style={estilos.ayuda}>
-            Un registro por cada socio o accionista — se usa para verificar inhabilidades, conflictos de interés y
-            declaraciones de beneficiarios finales. Esta sección es opcional: puedes dejarla vacía o completarla
-            después, y no hace falta adjuntar ningún documento.
-          </p>
-
-          <h3 style={estilos.tituloSubseccion}>Cargar varios accionistas a la vez</h3>
-          <p style={estilos.ayuda}>
-            Si tienes varios socios, es más rápido descargar la plantilla, llenarla y subirla de una sola vez.
-            Puedes subirla en Excel (.xlsx) o en CSV, como prefieras.
-          </p>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
-            <button
-              type="button"
-              style={estilos.botonSecundario}
-              disabled={preparandoPlantillaAccionistas}
-              onClick={async () => {
-                setPreparandoPlantillaAccionistas(true);
-                setMensajeAccionistas(null);
-                try {
-                  await descargarPlantillaAccionistasExcel();
-                } catch {
-                  setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo preparar la plantilla en Excel. Intenta de nuevo o descárgala en CSV.' });
-                } finally {
-                  setPreparandoPlantillaAccionistas(false);
-                }
-              }}
-            >
-              {preparandoPlantillaAccionistas ? 'Preparando…' : 'Descargar plantilla (Excel)'}
-            </button>
-            <button type="button" style={estilos.botonSecundario} onClick={descargarPlantillaAccionistasCSV}>
-              Descargar plantilla (CSV)
-            </button>
-            <label style={{ ...estilos.boton, display: 'inline-block', cursor: 'pointer' }}>
-              {importandoAccionistas ? 'Importando…' : 'Subir Excel o CSV lleno'}
-              <input type="file" accept=".csv,.xlsx,.xls" onChange={manejarArchivoImportadoAccionistas} disabled={importandoAccionistas} style={{ display: 'none' }} />
-            </label>
-          </div>
-
-          {mensajeAccionistas && (
-            <p style={mensajeAccionistas.tipo === 'error' ? estilos.mensajeError : estilos.mensajeOk}>{mensajeAccionistas.texto}</p>
-          )}
-
-          <h3 style={estilos.tituloSubseccion}>Accionistas guardados</h3>
-          {accionistas.length > 0 && (
-            <p style={{ ...estilos.ayuda, fontWeight: 600, color: Math.round(sumaParticipacionAccionistas) === 100 ? '#0A7F5C' : '#C0362C' }}>
-              Suma de participación: {sumaParticipacionAccionistas.toFixed(2)}% {Math.round(sumaParticipacionAccionistas) === 100 ? '✓' : '(debería sumar 100%)'}
-            </p>
-          )}
-          {cargandoAccionistas ? (
-            <p style={estilos.ayuda}>Cargando…</p>
-          ) : accionistas.length === 0 && !draftAccionista ? (
-            <p style={estilos.ayuda}>Todavía no has agregado ningún accionista.</p>
-          ) : (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
-              {accionistas.map((a) => (
-                <div key={a.id} style={estilos.filaTabla}>
-                  <div>
-                    <strong>{a.nombre_razon_social || 'Sin nombre'}</strong>
-                    {a.porcentaje_participacion != null ? ` — ${Number(a.porcentaje_participacion)}%` : ''}
-                    <div style={estilos.ayuda}>
-                      {a.tipo_documento ? `${TIPOS_DOCUMENTO.find((t) => t.value === a.tipo_documento)?.label ?? a.tipo_documento}` : ''}
-                      {a.numero_documento ? ` ${a.numero_documento}` : ''}
-                      {a.beneficiario_final ? ' · beneficiario final' : ''}
-                      {a.pep ? ' · PEP' : ''}
-                    </div>
-                  </div>
-                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
-                    <button type="button" style={estilos.botonSecundario} onClick={() => abrirEditarAccionista(a)}>Editar</button>
-                    <button type="button" style={estilos.botonSecundario} onClick={() => eliminarAccionista(a.id)}>Eliminar</button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-
-          {draftAccionista ? (
-            <div style={estilos.tarjetaFormulario}>
-              <div style={estilos.grid2}>
-                <Campo label="Nombre o razón social">
-                  <input style={estilos.input} value={draftAccionista.nombre_razon_social ?? ''} onChange={(e) => actualizarDraftAccionista('nombre_razon_social', e.target.value)} />
-                </Campo>
-                <Campo label="Tipo de documento">
-                  <select style={estilos.input} value={draftAccionista.tipo_documento ?? ''} onChange={(e) => actualizarDraftAccionista('tipo_documento', e.target.value)}>
-                    {TIPOS_DOCUMENTO.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                  </select>
-                </Campo>
-                <Campo label="Número de documento">
-                  <input style={estilos.input} value={draftAccionista.numero_documento ?? ''} onChange={(e) => actualizarDraftAccionista('numero_documento', e.target.value)} />
-                </Campo>
-                <Campo label="% de participación">
-                  <input type="number" step="any" style={estilos.input} value={draftAccionista.porcentaje_participacion ?? ''} onChange={(e) => actualizarDraftAccionista('porcentaje_participacion', e.target.value === '' ? '' : Number(e.target.value))} />
-                </Campo>
-                <Campo label="País de domicilio">
-                  <input style={estilos.input} value={draftAccionista.pais_domicilio ?? ''} onChange={(e) => actualizarDraftAccionista('pais_domicilio', e.target.value)} />
-                </Campo>
-              </div>
-
-              <PreguntaSiNo texto="¿Beneficiario final?" valor={draftAccionista.beneficiario_final} onChange={(v) => actualizarDraftAccionista('beneficiario_final', v)} />
-              <PreguntaSiNo texto="¿Persona expuesta políticamente (PEP)?" valor={draftAccionista.pep} onChange={(v) => actualizarDraftAccionista('pep', v)} />
-              <PreguntaSiNo texto="¿Es servidor público o pariente de uno?" valor={draftAccionista.servidor_publico_pariente} onChange={(v) => actualizarDraftAccionista('servidor_publico_pariente', v)} />
-              <PreguntaSiNo texto="¿Es representante legal o directivo?" valor={draftAccionista.representante_legal_directivo} onChange={(v) => actualizarDraftAccionista('representante_legal_directivo', v)} />
-
-              <Campo label="Observaciones">
-                <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={draftAccionista.observaciones ?? ''} onChange={(e) => actualizarDraftAccionista('observaciones', e.target.value)} />
-              </Campo>
-
-              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
-                <button type="button" style={estilos.botonSecundario} onClick={cancelarAccionista}>Cancelar</button>
-                <button type="button" disabled={guardandoAccionista} style={estilos.boton} onClick={guardarAccionista}>{guardandoAccionista ? 'Guardando…' : 'Guardar accionista'}</button>
-              </div>
-            </div>
-          ) : (
-            <button type="button" style={estilos.botonSecundario} onClick={abrirNuevoAccionista}>+ Agregar un accionista</button>
-          )}
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Actividad económica</h2>
-          <div style={estilos.grid2}>
-            <Campo label="Actividad económica principal (código CIIU y descripción)">
-              <input style={estilos.input} placeholder="6201 – Desarrollo de sistemas informáticos" value={form.ciiu_principal ?? ''} onChange={(e) => actualizarCampo('ciiu_principal', e.target.value)} />
-            </Campo>
-            <Campo label="Actividades económicas secundarias (CIIU)">
-              <input style={estilos.input} placeholder="6202; 6311" value={form.ciiu_secundarios ?? ''} onChange={(e) => actualizarCampo('ciiu_secundarios', e.target.value)} />
-            </Campo>
-            <Campo label="Responsabilidades tributarias del RUT">
-              <input style={estilos.input} placeholder="05 – Renta; 48 – IVA" value={form.responsabilidades_tributarias ?? ''} onChange={(e) => actualizarCampo('responsabilidades_tributarias', e.target.value)} />
-            </Campo>
-            <Campo label="Tamaño de la empresa">
-              <select style={estilos.input} value={form.tamano_empresa ?? ''} onChange={(e) => actualizarCampo('tamano_empresa', e.target.value)}>
-                {TAMANOS_EMPRESA.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-              </select>
-            </Campo>
-          </div>
-          <Campo label="Objeto social (texto completo, copiado de la Cámara de Comercio, sin resumir)">
-            <textarea
-              style={{ ...estilos.input, minHeight: 80, resize: 'vertical', fontFamily: 'inherit' }}
-              value={form.objeto_social ?? ''}
-              onChange={(e) => actualizarCampo('objeto_social', e.target.value)}
-            />
-          </Campo>
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Contacto</h2>
-          <div style={estilos.grid2}>
-            <Campo label="Correo electrónico de notificaciones">
-              <input type="email" style={estilos.input} value={form.correo_notificaciones ?? ''} onChange={(e) => actualizarCampo('correo_notificaciones', e.target.value)} />
-            </Campo>
-            <Campo label="Teléfono de contacto">
-              <input style={estilos.input} value={form.telefono_contacto ?? ''} onChange={(e) => actualizarCampo('telefono_contacto', e.target.value)} />
-            </Campo>
-            <Campo label="Sitio web">
-              <input style={estilos.input} value={form.sitio_web ?? ''} onChange={(e) => actualizarCampo('sitio_web', e.target.value)} />
-            </Campo>
-          </div>
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Cumplimiento y antecedentes</h2>
-          <p style={estilos.ayuda}>Respóndelas una sola vez. Con esto al día, el checklist de cumplimiento de cualquier proceso nuevo se da por resuelto automáticamente.</p>
-
-          <h3 style={estilos.tituloSubseccion}>Checklist general de viabilidad</h3>
-          <p style={estilos.ayuda}>Un vistazo rápido de si la empresa está en capacidad de participar, antes de entrar al detalle.</p>
-          {PREGUNTAS_CHECKLIST_GENERAL.map((p) => (
-            <PreguntaSiNo key={p.key} texto={p.texto} valor={form[p.key]} onChange={(v) => actualizarCampo(p.key, v)} />
-          ))}
-
-          <h3 style={estilos.tituloSubseccion}>Contabilidad y revisoría fiscal</h3>
-          <PreguntaSiNo texto="¿Tiene revisor fiscal?" valor={form.cump_tiene_revisor_fiscal} onChange={(v) => actualizarCampo('cump_tiene_revisor_fiscal', v)} />
-          <div style={estilos.grid2}>
-            {form.cump_tiene_revisor_fiscal === true && (
-              <Campo label="Nombre y T.P. del revisor fiscal">
-                <input style={estilos.input} placeholder="Juan Pérez – T.P. 12345-T" value={form.cump_revisor_fiscal_nombre_tp ?? ''} onChange={(e) => actualizarCampo('cump_revisor_fiscal_nombre_tp', e.target.value)} />
-              </Campo>
-            )}
-            <Campo label="Nombre y T.P. del contador público">
-              <input style={estilos.input} placeholder="Laura Díaz – T.P. 67890-T" value={form.cump_contador_nombre_tp ?? ''} onChange={(e) => actualizarCampo('cump_contador_nombre_tp', e.target.value)} />
-            </Campo>
-          </div>
-
-          <h3 style={estilos.tituloSubseccion}>Seguridad social y parafiscales</h3>
-          <PreguntaSiNo
-            texto="¿Puedes contar con un certificado de pago a seguridad social y parafiscales menor a 30 días?"
-            valor={form.cump_certificado_ss_parafiscales_30d}
-            onChange={(v) => actualizarCampo('cump_certificado_ss_parafiscales_30d', v)}
-          />
-          <PreguntaSiNo
-            texto="¿Está al día en aportes (sin deudas ni mora)?"
-            valor={form.cump_aportes_al_dia}
-            onChange={(v) => actualizarCampo('cump_aportes_al_dia', v)}
-          />
-
-          <h3 style={estilos.tituloSubseccion}>Antecedentes</h3>
-          <p style={estilos.ayuda}>Consulta cada uno en la entidad correspondiente y selecciona el resultado.</p>
-          <div style={estilos.grid2}>
-            {PREGUNTAS_ANTECEDENTES.map((p) => (
-              <Campo key={p.key} label={p.texto}>
-                <select style={estilos.input} value={form[p.key] ?? ''} onChange={(e) => actualizarCampo(p.key, e.target.value)}>
-                  {OPCIONES_ANTECEDENTES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </Campo>
-            ))}
-          </div>
-
-          <h3 style={estilos.tituloSubseccion}>Sanciones y contingencias</h3>
-          <div style={estilos.filaPregunta}>
-            <span style={estilos.textoPregunta}>¿Ha tenido multas, sanciones, caducidades o incumplimientos con entidades estatales en los últimos 5 años?</span>
-            <div style={estilos.opcionesSiNo}>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_tiene_sanciones_5_anios" checked={form.cump_tiene_sanciones_5_anios === true} onChange={() => actualizarCampo('cump_tiene_sanciones_5_anios', true)} /> Sí
-              </label>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_tiene_sanciones_5_anios" checked={form.cump_tiene_sanciones_5_anios === false} onChange={() => actualizarCampo('cump_tiene_sanciones_5_anios', false)} /> No
-              </label>
-            </div>
-          </div>
-          {form.cump_tiene_sanciones_5_anios === true && (
-            <Campo label="Detalle de multas, sanciones o incumplimientos (entidad, fecha, valor, estado)">
-              <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_sanciones ?? ''} onChange={(e) => actualizarCampo('cump_detalle_sanciones', e.target.value)} />
-            </Campo>
-          )}
-          <div style={estilos.filaPregunta}>
-            <span style={estilos.textoPregunta}>¿Tiene procesos judiciales, arbitrales o embargos relevantes en su contra?</span>
-            <div style={estilos.opcionesSiNo}>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_tiene_procesos_judiciales" checked={form.cump_tiene_procesos_judiciales === true} onChange={() => actualizarCampo('cump_tiene_procesos_judiciales', true)} /> Sí
-              </label>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_tiene_procesos_judiciales" checked={form.cump_tiene_procesos_judiciales === false} onChange={() => actualizarCampo('cump_tiene_procesos_judiciales', false)} /> No
-              </label>
-            </div>
-          </div>
-          {form.cump_tiene_procesos_judiciales === true && (
-            <Campo label="Detalle de esos procesos (cuantía, estado)">
-              <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_procesos_judiciales ?? ''} onChange={(e) => actualizarCampo('cump_detalle_procesos_judiciales', e.target.value)} />
-            </Campo>
-          )}
-
-          <h3 style={estilos.tituloSubseccion}>Sistemas de gestión y contratación electrónica</h3>
-          <div style={estilos.grid2}>
-            <Campo label="Puntaje de autoevaluación SG-SST (Resolución 0312 de 2019) — %">
-              <input type="number" step="any" style={estilos.input} value={form.cump_puntaje_sgsst ?? ''} onChange={(e) => actualizarCampo('cump_puntaje_sgsst', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-          </div>
-          {PREGUNTAS_CUMPLIMIENTO_SINO.filter((p) =>
-            ['cump_politica_proteccion_datos', 'cump_programa_etica_sarlaft', 'cump_secop_ii_activo'].includes(p.key)
-          ).map((p) => (
-            <PreguntaSiNo key={p.key} texto={p.texto} valor={form[p.key]} onChange={(v) => actualizarCampo(p.key, v)} />
-          ))}
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Financiero</h2>
-          <p style={estilos.ayuda}>Los datos base (en COP) permiten recalcular los indicadores automáticamente y combinarlos cuando se oferta en Unión Temporal o Consorcio.</p>
-
-          <h3 style={estilos.tituloSubseccion}>Registro Único de Proponentes (RUP)</h3>
-          <div style={estilos.grid2}>
-            <Campo label="Estado del RUP">
-              <select style={estilos.input} value={form.fin_estado_rup ?? ''} onChange={(e) => actualizarCampo('fin_estado_rup', e.target.value)}>
-                {ESTADOS_RUP.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
-            </Campo>
-            <Campo label="Fecha de renovación del RUP">
-              <input type="date" style={estilos.input} value={form.fin_fecha_renovacion_rup ?? ''} onChange={(e) => actualizarCampo('fin_fecha_renovacion_rup', e.target.value)} />
-            </Campo>
-            <Campo label="Fecha de corte de la información financiera del RUP">
-              <input type="date" style={estilos.input} value={form.fin_fecha_corte_informacion ?? ''} onChange={(e) => actualizarCampo('fin_fecha_corte_informacion', e.target.value)} />
-            </Campo>
-            <Campo label="Capacidad de contratación K residual — COP (solo obra pública)">
-              <input type="number" step="any" style={estilos.input} value={form.fin_k_residual ?? ''} onChange={(e) => actualizarCampo('fin_k_residual', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-          </div>
-
-          <h3 style={estilos.tituloSubseccion}>Datos base (cifras en COP, tomadas del RUP o de los estados financieros)</h3>
-          <div style={estilos.grid2}>
-            <Campo label="Activo corriente"><input type="number" step="any" style={estilos.input} value={form.fin_activo_corriente ?? ''} onChange={(e) => actualizarCampo('fin_activo_corriente', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Activo total"><input type="number" step="any" style={estilos.input} value={form.fin_activo_total ?? ''} onChange={(e) => actualizarCampo('fin_activo_total', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Pasivo corriente"><input type="number" step="any" style={estilos.input} value={form.fin_pasivo_corriente ?? ''} onChange={(e) => actualizarCampo('fin_pasivo_corriente', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Pasivo total"><input type="number" step="any" style={estilos.input} value={form.fin_pasivo_total ?? ''} onChange={(e) => actualizarCampo('fin_pasivo_total', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Patrimonio"><input type="number" step="any" style={estilos.input} value={form.fin_patrimonio ?? ''} onChange={(e) => actualizarCampo('fin_patrimonio', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Ingresos operacionales"><input type="number" step="any" style={estilos.input} value={form.fin_ingresos_operacionales ?? ''} onChange={(e) => actualizarCampo('fin_ingresos_operacionales', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Utilidad operacional"><input type="number" step="any" style={estilos.input} value={form.fin_utilidad_operacional ?? ''} onChange={(e) => actualizarCampo('fin_utilidad_operacional', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Utilidad neta"><input type="number" step="any" style={estilos.input} value={form.fin_utilidad_neta ?? ''} onChange={(e) => actualizarCampo('fin_utilidad_neta', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-            <Campo label="Gastos de intereses"><input type="number" step="any" style={estilos.input} value={form.fin_gastos_intereses ?? ''} onChange={(e) => actualizarCampo('fin_gastos_intereses', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
-          </div>
-
-          <h3 style={estilos.tituloSubseccion}>Indicadores tal como aparecen en el RUP</h3>
-          <Campo label="Régimen">
-            <select style={estilos.input} value={form.fin_regimen ?? 'normal'} onChange={(e) => actualizarCampo('fin_regimen', e.target.value)}>
-              <option value="normal">Normal</option>
-              <option value="mipyme">Mipyme</option>
-            </select>
-          </Campo>
-          <div style={estilos.grid2}>
-            <Campo label="Índice de Liquidez">
-              <input type="number" step="any" style={estilos.input} value={form.fin_indice_liquidez ?? ''} onChange={(e) => actualizarCampo('fin_indice_liquidez', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-            <Campo label="Índice de Endeudamiento (%)">
-              <input type="number" step="any" style={estilos.input} value={form.fin_indice_endeudamiento ?? ''} onChange={(e) => actualizarCampo('fin_indice_endeudamiento', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-            <Campo label="Razón de Cobertura de Intereses (número, o escribe 'Indeterminado')">
-              <input style={estilos.input} placeholder="11.71 / Indeterminado" value={form.fin_razon_cobertura_intereses ?? ''} onChange={(e) => actualizarCampo('fin_razon_cobertura_intereses', e.target.value)} />
-            </Campo>
-            <Campo label="Capital de Trabajo (COP)">
-              <input type="number" step="any" style={estilos.input} value={form.fin_capital_trabajo ?? ''} onChange={(e) => actualizarCampo('fin_capital_trabajo', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-            <Campo label="Rentabilidad del Patrimonio — ROE (%)">
-              <input type="number" step="any" style={estilos.input} value={form.fin_rentabilidad_patrimonio ?? ''} onChange={(e) => actualizarCampo('fin_rentabilidad_patrimonio', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-            <Campo label="Rentabilidad del Activo — ROA (%)">
-              <input type="number" step="any" style={estilos.input} value={form.fin_rentabilidad_activo ?? ''} onChange={(e) => actualizarCampo('fin_rentabilidad_activo', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-          </div>
-
-          <h3 style={estilos.tituloSubseccion}>Documentos financieros adicionales al RUP</h3>
-          <p style={estilos.ayuda}>Solo marca si los tienes disponibles — no hace falta adjuntarlos aquí.</p>
-          {DOCUMENTOS_FINANCIEROS_ADICIONALES
-            .filter((p) => !p.dependeDe || form[p.dependeDe] === true)
-            .map((p) => (
-              <PreguntaSiNo key={p.key} texto={p.texto} valor={form[p.key]} onChange={(v) => actualizarCampo(p.key, v)} />
-            ))}
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Cupos y garantías</h2>
-          <p style={estilos.ayuda}>Para respaldar las pólizas que piden los procesos (seriedad de la oferta, cumplimiento, entre otras).</p>
-          <PreguntaSiNo
-            texto="¿Cuenta con un corredor de seguros para expedir garantía de seriedad?"
-            valor={form.cupos_corredor_seguros_seriedad}
-            onChange={(v) => actualizarCampo('cupos_corredor_seguros_seriedad', v)}
-          />
-          <PreguntaSiNo
-            texto="¿Tiene capacidad de expedir pólizas de cumplimiento?"
-            valor={form.cupos_capacidad_polizas_cumplimiento}
-            onChange={(v) => actualizarCampo('cupos_capacidad_polizas_cumplimiento', v)}
-          />
-        </section>
-
-        <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Portafolio de servicios</h2>
-          <p style={estilos.ayuda}>Esto es lo que el motor de evaluación usa para encontrar procesos que te apliquen.</p>
-          <Campo label="Códigos UNSPSC en los que estás registrada (separados por comas)">
-            <input
-              style={estilos.input}
-              placeholder="Ej: 43211500, 81112501"
-              value={form.unspsc_codigos ?? ''}
-              onChange={(e) => actualizarCampo('unspsc_codigos', e.target.value)}
-            />
-          </Campo>
-          <Campo label="¿A qué se dedica la empresa? (párrafo libre)">
-            <textarea
-              style={{ ...estilos.input, minHeight: 100, resize: 'vertical', fontFamily: 'inherit' }}
-              placeholder="Describe el tipo de proyectos y servicios que maneja la empresa..."
-              value={form.descripcion_servicios ?? ''}
-              onChange={(e) => actualizarCampo('descripcion_servicios', e.target.value)}
-            />
-          </Campo>
-        </section>
-
-        <div style={estilos.pieFormulario}>
-          {mensaje && (
-            <span style={mensaje.tipo === 'ok' ? estilos.mensajeOk : estilos.mensajeError}>{mensaje.texto}</span>
-          )}
-          <button type="submit" disabled={guardando} style={estilos.boton}>
-            {guardando ? 'Guardando…' : 'Guardar'}
-          </button>
-        </div>
-      </form>
-    </main>
-  );
-}
-
 function Campo({ label, children }) {
   return (
     <label style={estilos.campo}>
@@ -1038,15 +231,333 @@ function Campo({ label, children }) {
   );
 }
 
+export default function ExperienciaPage() {
+  const [contratos, setContratos] = useState([]);
+  const [cargando, setCargando] = useState(true);
+  const [draft, setDraft] = useState(null);
+  const [guardando, setGuardando] = useState(false);
+  const [mensaje, setMensaje] = useState(null);
+  const [importando, setImportando] = useState(false);
+  const [preparandoPlantilla, setPreparandoPlantilla] = useState(false);
+
+  function cargar() {
+    setCargando(true);
+    fetch('/api/mi-empresa/experiencia')
+      .then((r) => r.json())
+      .then((data) => setContratos(data.experiencia ?? []))
+      .catch(() => setMensaje({ tipo: 'error', texto: 'No se pudo cargar la lista de contratos.' }))
+      .finally(() => setCargando(false));
+  }
+
+  useEffect(() => { cargar(); }, []);
+
+  function abrirNuevo() {
+    setDraft({ ...CONTRATO_VACIO });
+    setMensaje(null);
+  }
+
+  function abrirEditar(fila) {
+    const copia = { ...fila };
+    for (const campoFecha of ['fecha_inicio', 'fecha_terminacion']) {
+      if (copia[campoFecha]) copia[campoFecha] = String(copia[campoFecha]).slice(0, 10);
+    }
+    setDraft(copia);
+    setMensaje(null);
+  }
+
+  function cancelar() {
+    setDraft(null);
+  }
+
+  function actualizarDraft(key, value) {
+    setDraft((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function guardarContrato(e) {
+    e.preventDefault();
+    setGuardando(true);
+    setMensaje(null);
+    try {
+      const payload = Object.fromEntries(
+        Object.entries(draft).map(([key, value]) => [key, value === '' ? null : value])
+      );
+      const res = await fetch('/api/mi-empresa/experiencia', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('save_failed');
+      setDraft(null);
+      cargar();
+    } catch {
+      setMensaje({ tipo: 'error', texto: 'No se pudo guardar el contrato. Intenta de nuevo.' });
+    } finally {
+      setGuardando(false);
+    }
+  }
+
+  async function eliminarContrato(id) {
+    if (!confirm('¿Eliminar este contrato de tu experiencia?')) return;
+    try {
+      const res = await fetch(`/api/mi-empresa/experiencia?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete_failed');
+      cargar();
+    } catch {
+      setMensaje({ tipo: 'error', texto: 'No se pudo eliminar. Intenta de nuevo.' });
+    }
+  }
+
+  async function manejarArchivoImportado(e) {
+    const archivo = e.target.files?.[0];
+    e.target.value = ''; // para poder volver a elegir el mismo archivo después si hace falta
+    if (!archivo) return;
+
+    setImportando(true);
+    setMensaje(null);
+    try {
+      const filas = await leerFilasDelArchivo(archivo);
+      const filasDeDatos = filas.slice(1); // la primera fila son los encabezados
+
+      let exitosas = 0;
+      const filasConError = [];
+
+      for (let i = 0; i < filasDeDatos.length; i++) {
+        const fila = filasDeDatos[i];
+        const payload = {};
+        COLUMNAS_IMPORTACION.forEach((col, idx) => {
+          payload[col.key] = convertirValor(fila[idx], col.tipo);
+        });
+
+        try {
+          const res = await fetch('/api/mi-empresa/experiencia', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error('row_failed');
+          exitosas++;
+        } catch {
+          filasConError.push(i + 2); // +2: fila 1 es encabezado, y las filas de Excel empiezan en 1
+        }
+      }
+
+      cargar();
+      if (filasConError.length === 0) {
+        setMensaje({ tipo: 'ok', texto: `Se importaron ${exitosas} contrato(s) correctamente.` });
+      } else {
+        setMensaje({
+          tipo: 'error',
+          texto: `Se importaron ${exitosas} contrato(s). Hubo un problema en la(s) fila(s): ${filasConError.join(', ')}.`,
+        });
+      }
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: error?.message || 'No se pudo leer el archivo. Verifica que sea un CSV o Excel válido.' });
+    } finally {
+      setImportando(false);
+    }
+  }
+
+  return (
+    <main style={estilos.pagina}>
+      <nav style={estilos.tabs}>
+        <a href="/mi-empresa" style={estilos.tab}>Mi Empresa</a>
+        <a href="/mi-empresa/experiencia" style={{ ...estilos.tab, ...estilos.tabActiva }}>Experiencia</a>
+      </nav>
+
+      <h1 style={estilos.titulo}>Experiencia</h1>
+      <p style={estilos.subtitulo}>
+        Un registro por cada contrato que quieras usar como experiencia certificable. Copia el objeto tal
+        como aparece en la certificación — la comparación con cada pliego se hace sobre el texto exacto.
+        Esta sección es completamente opcional: puedes dejarla vacía, agregar solo algunos contratos, o
+        completarla después. No hace falta adjuntar ningún documento — solo indicas si tienes la certificación firmada.
+      </p>
+
+      <section style={estilos.seccion}>
+        <h2 style={estilos.tituloSeccion}>Cargar varios contratos a la vez</h2>
+        <p style={estilos.ayuda}>
+          Si tienes muchos contratos, es más rápido descargar la plantilla, llenarla y subirla de una sola vez,
+          en vez de agregarlos uno por uno. Puedes subir el archivo de Excel (.xlsx) tal cual, sin necesidad de
+          guardarlo como CSV — ambos formatos funcionan.
+        </p>
+        <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            style={estilos.botonSecundario}
+            disabled={preparandoPlantilla}
+            onClick={async () => {
+              setPreparandoPlantilla(true);
+              setMensaje(null);
+              try {
+                await descargarPlantillaExcel();
+              } catch {
+                setMensaje({ tipo: 'error', texto: 'No se pudo preparar la plantilla en Excel. Intenta de nuevo o descárgala en CSV.' });
+              } finally {
+                setPreparandoPlantilla(false);
+              }
+            }}
+          >
+            {preparandoPlantilla ? 'Preparando…' : 'Descargar plantilla (Excel)'}
+          </button>
+          <button type="button" style={estilos.botonSecundario} onClick={descargarPlantillaCSV}>
+            Descargar plantilla (CSV)
+          </button>
+          <label style={{ ...estilos.boton, display: 'inline-block', cursor: 'pointer' }}>
+            {importando ? 'Importando…' : 'Subir Excel o CSV lleno'}
+            <input type="file" accept=".csv,.xlsx,.xls" onChange={manejarArchivoImportado} disabled={importando} style={{ display: 'none' }} />
+          </label>
+        </div>
+      </section>
+
+      {mensaje && <p style={mensaje.tipo === 'error' ? estilos.mensajeError : estilos.mensajeOk}>{mensaje.texto}</p>}
+
+      <section style={estilos.seccion}>
+        <h2 style={estilos.tituloSeccion}>Contratos guardados</h2>
+        {cargando ? (
+          <p style={estilos.ayuda}>Cargando…</p>
+        ) : contratos.length === 0 && !draft ? (
+          <p style={estilos.ayuda}>Todavía no has agregado ningún contrato.</p>
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+            {contratos.map((c) => (
+              <div key={c.id} style={estilos.filaTabla}>
+                <div>
+                  <strong>{c.cliente_entidad || 'Sin cliente'}</strong>
+                  {c.numero_referencia_contrato ? ` — ${c.numero_referencia_contrato}` : ''}
+                  <div style={estilos.ayuda}>
+                    {c.valor_final ? `$${Number(c.valor_final).toLocaleString('es-CO')} COP` : 'Sin valor'}
+                    {c.fecha_terminacion ? ` · terminó ${String(c.fecha_terminacion).slice(0, 10)}` : ''}
+                    {c.estado_contrato ? ` · ${ESTADOS_CONTRATO.find((e) => e.value === c.estado_contrato)?.label ?? c.estado_contrato}` : ''}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                  <button type="button" style={estilos.botonSecundario} onClick={() => abrirEditar(c)}>Editar</button>
+                  <button type="button" style={estilos.botonSecundario} onClick={() => eliminarContrato(c.id)}>Eliminar</button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {draft ? (
+          <form onSubmit={guardarContrato} style={estilos.tarjetaFormulario}>
+            <h3 style={estilos.tituloSubseccion}>Identificación del contrato</h3>
+            <div style={estilos.grid2}>
+              <Campo label="Nº consecutivo en el RUP">
+                <input style={estilos.input} value={draft.numero_consecutivo_rup ?? ''} onChange={(e) => actualizarDraft('numero_consecutivo_rup', e.target.value)} />
+              </Campo>
+              <Campo label="Cliente / entidad contratante">
+                <input style={estilos.input} value={draft.cliente_entidad ?? ''} onChange={(e) => actualizarDraft('cliente_entidad', e.target.value)} />
+              </Campo>
+              <Campo label="Tipo de cliente">
+                <select style={estilos.input} value={draft.tipo_cliente ?? ''} onChange={(e) => actualizarDraft('tipo_cliente', e.target.value)}>
+                  {TIPOS_CLIENTE.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </Campo>
+              <Campo label="Nº o referencia del contrato">
+                <input style={estilos.input} value={draft.numero_referencia_contrato ?? ''} onChange={(e) => actualizarDraft('numero_referencia_contrato', e.target.value)} />
+              </Campo>
+            </div>
+
+            <h3 style={estilos.tituloSubseccion}>Objeto y alcance</h3>
+            <Campo label="Objeto exacto (copiado tal cual del certificado, sin resumir)">
+              <textarea style={{ ...estilos.input, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} value={draft.objeto_exacto ?? ''} onChange={(e) => actualizarDraft('objeto_exacto', e.target.value)} />
+            </Campo>
+            <Campo label="Actividades realizadas y alcance">
+              <textarea style={{ ...estilos.input, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} value={draft.actividades_alcance ?? ''} onChange={(e) => actualizarDraft('actividades_alcance', e.target.value)} />
+            </Campo>
+
+            <h3 style={estilos.tituloSubseccion}>Valores</h3>
+            <div style={estilos.grid2}>
+              <Campo label="Valor inicial (COP)">
+                <input type="number" step="any" style={estilos.input} value={draft.valor_inicial ?? ''} onChange={(e) => actualizarDraft('valor_inicial', e.target.value === '' ? '' : Number(e.target.value))} />
+              </Campo>
+              <Campo label="Adiciones (COP) — vacío si no hubo">
+                <input type="number" step="any" style={estilos.input} value={draft.adiciones ?? ''} onChange={(e) => actualizarDraft('adiciones', e.target.value === '' ? '' : Number(e.target.value))} />
+              </Campo>
+              <Campo label="Valor final (COP)">
+                <input type="number" step="any" style={estilos.input} value={draft.valor_final ?? ''} onChange={(e) => actualizarDraft('valor_final', e.target.value === '' ? '' : Number(e.target.value))} />
+              </Campo>
+              <Campo label="Valor en SMMLV a la fecha de terminación (si el certificado o el RUP lo indican)">
+                <input type="number" step="any" style={estilos.input} value={draft.valor_smmlv ?? ''} onChange={(e) => actualizarDraft('valor_smmlv', e.target.value === '' ? '' : Number(e.target.value))} />
+              </Campo>
+            </div>
+
+            <h3 style={estilos.tituloSubseccion}>Fechas y estado</h3>
+            <div style={estilos.grid2}>
+              <Campo label="Fecha de inicio">
+                <input type="date" style={estilos.input} value={draft.fecha_inicio ?? ''} onChange={(e) => actualizarDraft('fecha_inicio', e.target.value)} />
+              </Campo>
+              <Campo label="Fecha de terminación">
+                <input type="date" style={estilos.input} value={draft.fecha_terminacion ?? ''} onChange={(e) => actualizarDraft('fecha_terminacion', e.target.value)} />
+              </Campo>
+              <Campo label="Estado del contrato">
+                <select style={estilos.input} value={draft.estado_contrato ?? ''} onChange={(e) => actualizarDraft('estado_contrato', e.target.value)}>
+                  {ESTADOS_CONTRATO.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                </select>
+              </Campo>
+            </div>
+
+            <h3 style={estilos.tituloSubseccion}>Clasificación y participación</h3>
+            <div style={estilos.grid2}>
+              <Campo label="Códigos UNSPSC del contrato en el RUP (separados por ;)">
+                <input style={estilos.input} placeholder="81111500; 81112000" value={draft.unspsc_codigos ?? ''} onChange={(e) => actualizarDraft('unspsc_codigos', e.target.value)} />
+              </Campo>
+              <Campo label="Etiquetas temáticas (ej: nube, software, seguridad, web, datos)">
+                <input style={estilos.input} value={draft.etiquetas_tematicas ?? ''} onChange={(e) => actualizarDraft('etiquetas_tematicas', e.target.value)} />
+              </Campo>
+            </div>
+            <PreguntaSiNo
+              texto="¿Se ejecutó en consorcio o unión temporal?"
+              valor={draft.ejecutado_ut_consorcio}
+              onChange={(v) => actualizarDraft('ejecutado_ut_consorcio', v)}
+            />
+            {draft.ejecutado_ut_consorcio === true && (
+              <div style={estilos.grid2}>
+                <Campo label="% de participación">
+                  <input type="number" step="any" style={estilos.input} value={draft.porcentaje_participacion ?? ''} onChange={(e) => actualizarDraft('porcentaje_participacion', e.target.value === '' ? '' : Number(e.target.value))} />
+                </Campo>
+                <Campo label="Valor final ponderado por participación (COP)">
+                  <input type="number" step="any" style={estilos.input} value={draft.valor_final_ponderado ?? ''} onChange={(e) => actualizarDraft('valor_final_ponderado', e.target.value === '' ? '' : Number(e.target.value))} />
+                </Campo>
+              </div>
+            )}
+
+            <h3 style={estilos.tituloSubseccion}>Certificación</h3>
+            <div style={estilos.grid2}>
+              <Campo label="Cantidades ejecutadas (usuarios, licencias, sedes, módulos, horas)">
+                <input style={estilos.input} value={draft.cantidades_ejecutadas ?? ''} onChange={(e) => actualizarDraft('cantidades_ejecutadas', e.target.value)} />
+              </Campo>
+              <Campo label="Persona que certifica (nombre, cargo, contacto)">
+                <input style={estilos.input} value={draft.persona_certifica ?? ''} onChange={(e) => actualizarDraft('persona_certifica', e.target.value)} />
+              </Campo>
+            </div>
+            <PreguntaSiNo
+              texto="¿Certificación firmada y con datos de contacto?"
+              valor={draft.certificacion_firmada}
+              onChange={(v) => actualizarDraft('certificacion_firmada', v)}
+            />
+
+            <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+              <button type="button" style={estilos.botonSecundario} onClick={cancelar}>Cancelar</button>
+              <button type="submit" disabled={guardando} style={estilos.boton}>{guardando ? 'Guardando…' : 'Guardar contrato'}</button>
+            </div>
+          </form>
+        ) : (
+          <button type="button" style={estilos.boton} onClick={abrirNuevo}>+ Agregar un contrato</button>
+        )}
+      </section>
+    </main>
+  );
+}
+
 const estilos = {
   pagina: { maxWidth: 860, margin: '0 auto', padding: '48px 24px', fontFamily: 'system-ui, sans-serif', color: '#12181F' },
   titulo: { fontSize: 28, fontWeight: 700, marginBottom: 4 },
   subtitulo: { color: '#5B6572', marginBottom: 32, lineHeight: 1.5 },
-  formulario: { display: 'flex', flexDirection: 'column', gap: 32 },
-  seccion: { border: '1px solid #E3E7EC', borderRadius: 12, padding: 24 },
   tabs: { display: 'flex', gap: 8, marginBottom: 24, borderBottom: '1px solid #E3E7EC' },
   tab: { padding: '10px 16px', textDecoration: 'none', color: '#5B6572', fontSize: 14, fontWeight: 500, borderBottom: '2px solid transparent' },
   tabActiva: { color: '#12181F', borderBottom: '2px solid #12181F' },
+  seccion: { border: '1px solid #E3E7EC', borderRadius: 12, padding: 24, marginBottom: 24 },
   tituloSeccion: { fontSize: 18, fontWeight: 600, marginBottom: 12 },
   tituloSubseccion: { fontSize: 15, fontWeight: 600, marginTop: 20, marginBottom: 8, color: '#374151' },
   ayuda: { color: '#5B6572', fontSize: 14, marginBottom: 16 },
@@ -1060,7 +571,6 @@ const estilos = {
   opcionSiNo: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 },
   filaTabla: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', border: '1px solid #E3E7EC', borderRadius: 8 },
   tarjetaFormulario: { border: '1px dashed #D0D5DD', borderRadius: 8, padding: 16 },
-  pieFormulario: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16 },
   boton: { background: '#12181F', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
   botonSecundario: { background: '#fff', color: '#12181F', border: '1px solid #D0D5DD', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' },
   mensajeOk: { color: '#0A7F5C', fontSize: 14 },
