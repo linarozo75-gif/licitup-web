@@ -83,6 +83,8 @@ const CAMPOS_INICIALES = {
   fin_doc_dictamen_revisor_fiscal: null,
   fin_doc_declaracion_renta: null,
   fin_doc_certificacion_bancaria: null,
+  cupos_corredor_seguros_seriedad: null,
+  cupos_capacidad_polizas_cumplimiento: null,
   unspsc_codigos: '',
   descripcion_servicios: '',
 };
@@ -566,6 +568,21 @@ export default function MiEmpresaPage() {
             .map((p) => (
               <PreguntaSiNo key={p.key} texto={p.texto} valor={form[p.key]} onChange={(v) => actualizarCampo(p.key, v)} />
             ))}
+        </section>
+
+        <section style={estilos.seccion}>
+          <h2 style={estilos.tituloSeccion}>Cupos y garantías</h2>
+          <p style={estilos.ayuda}>Para respaldar las pólizas que piden los procesos (seriedad de la oferta, cumplimiento, entre otras).</p>
+          <PreguntaSiNo
+            texto="¿Cuenta con un corredor de seguros para expedir garantía de seriedad?"
+            valor={form.cupos_corredor_seguros_seriedad}
+            onChange={(v) => actualizarCampo('cupos_corredor_seguros_seriedad', v)}
+          />
+          <PreguntaSiNo
+            texto="¿Tiene capacidad de expedir pólizas de cumplimiento?"
+            valor={form.cupos_capacidad_polizas_cumplimiento}
+            onChange={(v) => actualizarCampo('cupos_capacidad_polizas_cumplimiento', v)}
+          />
         </section>
 
         <section style={estilos.seccion}>
