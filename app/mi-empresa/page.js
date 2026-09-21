@@ -85,6 +85,12 @@ const CAMPOS_INICIALES = {
   fin_doc_certificacion_bancaria: null,
   cupos_corredor_seguros_seriedad: null,
   cupos_capacidad_polizas_cumplimiento: null,
+  cap_infraestructura_herramientas: '',
+  cap_sedes_ciudades: '',
+  cap_esquema_soporte: '',
+  cap_metodologias: '',
+  cap_servicios_principales: '',
+  cap_sectores_experiencia: '',
   unspsc_codigos: '',
   descripcion_servicios: '',
 };
@@ -215,6 +221,40 @@ const COLUMNAS_IMPORTACION_ACCIONISTAS = [
 
 const FILA_EJEMPLO_ACCIONISTAS = ['María Gómez Pérez', 'CC', '52000000', '60', 'Colombia', 'Si', 'No', 'No', 'Si', ''];
 
+// Módulo 9b (Certificaciones de la empresa): igual que Accionistas, tabla propia pero dentro de esta misma página.
+const TIPOS_CERTIFICACION_EMPRESA = [
+  { value: '', label: 'Selecciona...' },
+  { value: 'iso_norma_gestion', label: 'ISO / norma de gestión' },
+  { value: 'partner_fabricante', label: 'Partner / fabricante' },
+  { value: 'otra_certificacion', label: 'Otra certificación' },
+];
+
+const CERTIFICACION_EMPRESA_VACIA = {
+  id: null,
+  tipo: '',
+  norma_programa_nombre: '',
+  entidad_certificadora: '',
+  alcance_nivel: '',
+  fecha_emision: '',
+  fecha_vencimiento: '',
+  observaciones: '',
+};
+
+const COLUMNAS_IMPORTACION_CERTIFICACIONES_EMPRESA = [
+  { header: 'Tipo (ISO/norma de gestión, Partner/fabricante u Otra certificación)', key: 'tipo', tipo: 'tipo_certificacion' },
+  { header: 'Norma, programa o nombre', key: 'norma_programa_nombre', tipo: 'texto' },
+  { header: 'Entidad certificadora o fabricante', key: 'entidad_certificadora', tipo: 'texto' },
+  { header: 'Alcance o nivel', key: 'alcance_nivel', tipo: 'texto' },
+  { header: 'Fecha de emisión (aaaa-mm-dd)', key: 'fecha_emision', tipo: 'fecha' },
+  { header: 'Fecha de vencimiento (aaaa-mm-dd)', key: 'fecha_vencimiento', tipo: 'fecha' },
+  { header: 'Observaciones', key: 'observaciones', tipo: 'texto' },
+];
+
+const FILA_EJEMPLO_CERTIFICACIONES_EMPRESA = [
+  'ISO / norma de gestión', 'ISO 27001:2022', 'Icontec', 'Desarrollo y soporte de software',
+  '2024-04-10', '2027-04-10', '',
+];
+
 function normalizar(texto) {
   return String(texto ?? '')
     .trim()
@@ -242,6 +282,19 @@ function convertirValor(valorCrudo, tipo) {
       const n = normalizar(valor);
       if (['cc', 'ce', 'nit', 'pasaporte'].includes(n)) return n;
       return 'otro';
+    }
+    case 'tipo_certificacion': {
+      const n = normalizar(valor);
+      if (n.includes('iso') || n.includes('norma')) return 'iso_norma_gestion';
+      if (n.includes('partner') || n.includes('fabricante')) return 'partner_fabricante';
+      return 'otra_certificacion';
+    }
+    case 'fecha': {
+      const iso = valor.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+      if (iso) return `${iso[1]}-${iso[2].padStart(2, '0')}-${iso[3].padStart(2, '0')}`;
+      const dmy = valor.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+      if (dmy) return `${dmy[3]}-${dmy[2].padStart(2, '0')}-${dmy[1].padStart(2, '0')}`;
+      return null;
     }
     default:
       return valor;
@@ -331,6 +384,32 @@ async function descargarPlantillaAccionistasExcel() {
   XLSX.writeFile(libro, 'plantilla_accionistas_licitup.xlsx');
 }
 
+function descargarPlantillaCertificacionesEmpresaCSV() {
+  const encabezados = COLUMNAS_IMPORTACION_CERTIFICACIONES_EMPRESA.map((c) => c.header);
+  const filas = [encabezados, FILA_EJEMPLO_CERTIFICACIONES_EMPRESA];
+  const csv = filas
+    .map((fila) => fila.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'plantilla_certificaciones_empresa_licitup.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function descargarPlantillaCertificacionesEmpresaExcel() {
+  const XLSX = await cargarLectorExcel();
+  const encabezados = COLUMNAS_IMPORTACION_CERTIFICACIONES_EMPRESA.map((c) => c.header);
+  const datos = [encabezados, FILA_EJEMPLO_CERTIFICACIONES_EMPRESA];
+  const hoja = XLSX.utils.aoa_to_sheet(datos);
+  hoja['!cols'] = encabezados.map(() => ({ wch: 26 }));
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Certificaciones');
+  XLSX.writeFile(libro, 'plantilla_certificaciones_empresa_licitup.xlsx');
+}
+
 // Componente reutilizable para una pregunta Sí/No, con soporte para depender de otra pregunta
 function PreguntaSiNo({ texto, valor, onChange }) {
   return (
@@ -362,6 +441,14 @@ export default function MiEmpresaPage() {
   const [importandoAccionistas, setImportandoAccionistas] = useState(false);
   const [preparandoPlantillaAccionistas, setPreparandoPlantillaAccionistas] = useState(false);
 
+  const [certificacionesEmpresa, setCertificacionesEmpresa] = useState([]);
+  const [cargandoCertificacionesEmpresa, setCargandoCertificacionesEmpresa] = useState(true);
+  const [draftCertificacionEmpresa, setDraftCertificacionEmpresa] = useState(null);
+  const [guardandoCertificacionEmpresa, setGuardandoCertificacionEmpresa] = useState(false);
+  const [mensajeCertificacionesEmpresa, setMensajeCertificacionesEmpresa] = useState(null);
+  const [importandoCertificacionesEmpresa, setImportandoCertificacionesEmpresa] = useState(false);
+  const [preparandoPlantillaCertificacionesEmpresa, setPreparandoPlantillaCertificacionesEmpresa] = useState(false);
+
   useEffect(() => {
     fetch('/api/mi-empresa')
       .then((r) => r.json())
@@ -391,6 +478,17 @@ export default function MiEmpresaPage() {
   }
 
   useEffect(() => { cargarAccionistas(); }, []);
+
+  function cargarCertificacionesEmpresa() {
+    setCargandoCertificacionesEmpresa(true);
+    fetch('/api/mi-empresa/certificaciones')
+      .then((r) => r.json())
+      .then((data) => setCertificacionesEmpresa(data.certificaciones ?? []))
+      .catch(() => setMensajeCertificacionesEmpresa({ tipo: 'error', texto: 'No se pudo cargar la lista de certificaciones.' }))
+      .finally(() => setCargandoCertificacionesEmpresa(false));
+  }
+
+  useEffect(() => { cargarCertificacionesEmpresa(); }, []);
 
   function actualizarCampo(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -522,6 +620,110 @@ export default function MiEmpresaPage() {
   }
 
   const sumaParticipacionAccionistas = accionistas.reduce((acc, a) => acc + (Number(a.porcentaje_participacion) || 0), 0);
+
+  function abrirNuevaCertificacionEmpresa() {
+    setDraftCertificacionEmpresa({ ...CERTIFICACION_EMPRESA_VACIA });
+    setMensajeCertificacionesEmpresa(null);
+  }
+
+  function abrirEditarCertificacionEmpresa(fila) {
+    const copia = { ...fila };
+    if (copia.fecha_emision) copia.fecha_emision = String(copia.fecha_emision).slice(0, 10);
+    if (copia.fecha_vencimiento) copia.fecha_vencimiento = String(copia.fecha_vencimiento).slice(0, 10);
+    setDraftCertificacionEmpresa(copia);
+    setMensajeCertificacionesEmpresa(null);
+  }
+
+  function cancelarCertificacionEmpresa() {
+    setDraftCertificacionEmpresa(null);
+  }
+
+  function actualizarDraftCertificacionEmpresa(key, value) {
+    setDraftCertificacionEmpresa((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function guardarCertificacionEmpresa() {
+    setGuardandoCertificacionEmpresa(true);
+    setMensajeCertificacionesEmpresa(null);
+    try {
+      const payload = Object.fromEntries(
+        Object.entries(draftCertificacionEmpresa).map(([key, value]) => [key, value === '' ? null : value])
+      );
+      const res = await fetch('/api/mi-empresa/certificaciones', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('save_failed');
+      setDraftCertificacionEmpresa(null);
+      cargarCertificacionesEmpresa();
+    } catch {
+      setMensajeCertificacionesEmpresa({ tipo: 'error', texto: 'No se pudo guardar la certificación. Intenta de nuevo.' });
+    } finally {
+      setGuardandoCertificacionEmpresa(false);
+    }
+  }
+
+  async function eliminarCertificacionEmpresa(id) {
+    if (!confirm('¿Eliminar esta certificación?')) return;
+    try {
+      const res = await fetch(`/api/mi-empresa/certificaciones?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete_failed');
+      cargarCertificacionesEmpresa();
+    } catch {
+      setMensajeCertificacionesEmpresa({ tipo: 'error', texto: 'No se pudo eliminar. Intenta de nuevo.' });
+    }
+  }
+
+  async function manejarArchivoImportadoCertificacionesEmpresa(e) {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!archivo) return;
+
+    setImportandoCertificacionesEmpresa(true);
+    setMensajeCertificacionesEmpresa(null);
+    try {
+      const filas = await leerFilasDelArchivo(archivo);
+      const filasDeDatos = filas.slice(1);
+
+      let exitosas = 0;
+      const filasConError = [];
+
+      for (let i = 0; i < filasDeDatos.length; i++) {
+        const fila = filasDeDatos[i];
+        const payload = {};
+        COLUMNAS_IMPORTACION_CERTIFICACIONES_EMPRESA.forEach((col, idx) => {
+          payload[col.key] = convertirValor(fila[idx], col.tipo);
+        });
+
+        try {
+          const res = await fetch('/api/mi-empresa/certificaciones', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error('row_failed');
+          exitosas++;
+        } catch {
+          filasConError.push(i + 2);
+        }
+      }
+
+      cargarCertificacionesEmpresa();
+      if (filasConError.length === 0) {
+        setMensajeCertificacionesEmpresa({ tipo: 'ok', texto: `Se importaron ${exitosas} certificación(es) correctamente.` });
+      } else {
+        setMensajeCertificacionesEmpresa({
+          tipo: 'error',
+          texto: `Se importaron ${exitosas} certificación(es). Hubo un problema en la(s) fila(s): ${filasConError.join(', ')}.`,
+        });
+      }
+    } catch (error) {
+      setMensajeCertificacionesEmpresa({ tipo: 'error', texto: error?.message || 'No se pudo leer el archivo. Verifica que sea un CSV o Excel válido.' });
+    } finally {
+      setImportandoCertificacionesEmpresa(false);
+    }
+  }
 
   if (cargando) {
     return <main style={estilos.pagina}><p>Cargando perfil…</p></main>;
@@ -994,6 +1196,135 @@ export default function MiEmpresaPage() {
             valor={form.cupos_capacidad_polizas_cumplimiento}
             onChange={(v) => actualizarCampo('cupos_capacidad_polizas_cumplimiento', v)}
           />
+        </section>
+
+        <section style={estilos.seccion}>
+          <h2 style={estilos.tituloSeccion}>Capacidades y portafolio</h2>
+          <p style={estilos.ayuda}>Infraestructura, esquema de soporte, metodologías y servicios — esto es lo que se cruza contra lo que pide cada pliego.</p>
+          <Campo label="Infraestructura y herramientas propias (licencias, plataformas, laboratorios)">
+            <textarea style={{ ...estilos.input, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} value={form.cap_infraestructura_herramientas ?? ''} onChange={(e) => actualizarCampo('cap_infraestructura_herramientas', e.target.value)} />
+          </Campo>
+          <Campo label="Sedes y ciudades donde tiene presencia">
+            <input style={estilos.input} placeholder="Bogotá (sede principal); equipo remoto en el resto del país" value={form.cap_sedes_ciudades ?? ''} onChange={(e) => actualizarCampo('cap_sedes_ciudades', e.target.value)} />
+          </Campo>
+          <Campo label="Esquema de soporte o mesa de ayuda (horario, canales, tiempos de respuesta)">
+            <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cap_esquema_soporte ?? ''} onChange={(e) => actualizarCampo('cap_esquema_soporte', e.target.value)} />
+          </Campo>
+          <Campo label="Metodologías que aplica (PMI, Scrum, ITIL, etc.)">
+            <input style={estilos.input} placeholder="PMI; Scrum; ITIL 4" value={form.cap_metodologias ?? ''} onChange={(e) => actualizarCampo('cap_metodologias', e.target.value)} />
+          </Campo>
+          <Campo label="Servicios y soluciones principales">
+            <textarea style={{ ...estilos.input, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }} value={form.cap_servicios_principales ?? ''} onChange={(e) => actualizarCampo('cap_servicios_principales', e.target.value)} />
+          </Campo>
+          <Campo label="Sectores en los que tiene experiencia">
+            <input style={estilos.input} placeholder="Financiero, salud, gobierno" value={form.cap_sectores_experiencia ?? ''} onChange={(e) => actualizarCampo('cap_sectores_experiencia', e.target.value)} />
+          </Campo>
+        </section>
+
+        <section style={estilos.seccion}>
+          <h2 style={estilos.tituloSeccion}>Certificaciones de la empresa</h2>
+          <p style={estilos.ayuda}>
+            ISO, partner de fabricante (Microsoft, AWS, Google, etc.) u otras certificaciones de la empresa.
+            Esta sección es opcional, y no hace falta adjuntar el soporte.
+          </p>
+
+          <h3 style={estilos.tituloSubseccion}>Cargar varias certificaciones a la vez</h3>
+          <p style={estilos.ayuda}>Puedes subir la plantilla llena en Excel (.xlsx) o en CSV, como prefieras.</p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+            <button
+              type="button"
+              style={estilos.botonSecundario}
+              disabled={preparandoPlantillaCertificacionesEmpresa}
+              onClick={async () => {
+                setPreparandoPlantillaCertificacionesEmpresa(true);
+                setMensajeCertificacionesEmpresa(null);
+                try {
+                  await descargarPlantillaCertificacionesEmpresaExcel();
+                } catch {
+                  setMensajeCertificacionesEmpresa({ tipo: 'error', texto: 'No se pudo preparar la plantilla en Excel. Intenta de nuevo o descárgala en CSV.' });
+                } finally {
+                  setPreparandoPlantillaCertificacionesEmpresa(false);
+                }
+              }}
+            >
+              {preparandoPlantillaCertificacionesEmpresa ? 'Preparando…' : 'Descargar plantilla (Excel)'}
+            </button>
+            <button type="button" style={estilos.botonSecundario} onClick={descargarPlantillaCertificacionesEmpresaCSV}>
+              Descargar plantilla (CSV)
+            </button>
+            <label style={{ ...estilos.boton, display: 'inline-block', cursor: 'pointer' }}>
+              {importandoCertificacionesEmpresa ? 'Importando…' : 'Subir Excel o CSV lleno'}
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={manejarArchivoImportadoCertificacionesEmpresa} disabled={importandoCertificacionesEmpresa} style={{ display: 'none' }} />
+            </label>
+          </div>
+
+          {mensajeCertificacionesEmpresa && (
+            <p style={mensajeCertificacionesEmpresa.tipo === 'error' ? estilos.mensajeError : estilos.mensajeOk}>{mensajeCertificacionesEmpresa.texto}</p>
+          )}
+
+          <h3 style={estilos.tituloSubseccion}>Certificaciones guardadas</h3>
+          {cargandoCertificacionesEmpresa ? (
+            <p style={estilos.ayuda}>Cargando…</p>
+          ) : certificacionesEmpresa.length === 0 && !draftCertificacionEmpresa ? (
+            <p style={estilos.ayuda}>Todavía no has agregado ninguna certificación.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {certificacionesEmpresa.map((c) => (
+                <div key={c.id} style={estilos.filaTabla}>
+                  <div>
+                    <strong>{c.norma_programa_nombre || 'Sin nombre'}</strong>
+                    {c.entidad_certificadora ? ` — ${c.entidad_certificadora}` : ''}
+                    <div style={estilos.ayuda}>
+                      {c.tipo ? `${TIPOS_CERTIFICACION_EMPRESA.find((t) => t.value === c.tipo)?.label ?? c.tipo}` : ''}
+                      {c.fecha_vencimiento ? ` · vence ${String(c.fecha_vencimiento).slice(0, 10)}` : ' · sin vencimiento'}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <button type="button" style={estilos.botonSecundario} onClick={() => abrirEditarCertificacionEmpresa(c)}>Editar</button>
+                    <button type="button" style={estilos.botonSecundario} onClick={() => eliminarCertificacionEmpresa(c.id)}>Eliminar</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {draftCertificacionEmpresa ? (
+            <div style={estilos.tarjetaFormulario}>
+              <div style={estilos.grid2}>
+                <Campo label="Tipo">
+                  <select style={estilos.input} value={draftCertificacionEmpresa.tipo ?? ''} onChange={(e) => actualizarDraftCertificacionEmpresa('tipo', e.target.value)}>
+                    {TIPOS_CERTIFICACION_EMPRESA.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </Campo>
+                <Campo label="Norma, programa o nombre">
+                  <input style={estilos.input} placeholder="ISO 27001:2022" value={draftCertificacionEmpresa.norma_programa_nombre ?? ''} onChange={(e) => actualizarDraftCertificacionEmpresa('norma_programa_nombre', e.target.value)} />
+                </Campo>
+                <Campo label="Entidad certificadora o fabricante">
+                  <input style={estilos.input} placeholder="Icontec" value={draftCertificacionEmpresa.entidad_certificadora ?? ''} onChange={(e) => actualizarDraftCertificacionEmpresa('entidad_certificadora', e.target.value)} />
+                </Campo>
+                <Campo label="Alcance o nivel">
+                  <input style={estilos.input} placeholder="Desarrollo y soporte de software / nivel Gold" value={draftCertificacionEmpresa.alcance_nivel ?? ''} onChange={(e) => actualizarDraftCertificacionEmpresa('alcance_nivel', e.target.value)} />
+                </Campo>
+                <Campo label="Fecha de emisión">
+                  <input type="date" style={estilos.input} value={draftCertificacionEmpresa.fecha_emision ?? ''} onChange={(e) => actualizarDraftCertificacionEmpresa('fecha_emision', e.target.value)} />
+                </Campo>
+                <Campo label="Fecha de vencimiento">
+                  <input type="date" style={estilos.input} value={draftCertificacionEmpresa.fecha_vencimiento ?? ''} onChange={(e) => actualizarDraftCertificacionEmpresa('fecha_vencimiento', e.target.value)} />
+                </Campo>
+              </div>
+
+              <Campo label="Observaciones">
+                <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={draftCertificacionEmpresa.observaciones ?? ''} onChange={(e) => actualizarDraftCertificacionEmpresa('observaciones', e.target.value)} />
+              </Campo>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+                <button type="button" style={estilos.botonSecundario} onClick={cancelarCertificacionEmpresa}>Cancelar</button>
+                <button type="button" disabled={guardandoCertificacionEmpresa} style={estilos.boton} onClick={guardarCertificacionEmpresa}>{guardandoCertificacionEmpresa ? 'Guardando…' : 'Guardar certificación'}</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" style={estilos.botonSecundario} onClick={abrirNuevaCertificacionEmpresa}>+ Agregar una certificación</button>
+          )}
         </section>
 
         <section style={estilos.seccion}>
