@@ -250,6 +250,11 @@ export default function MiEmpresaPage() {
 
   return (
     <main style={estilos.pagina}>
+      <nav style={estilos.tabs}>
+        <a href="/mi-empresa" style={{ ...estilos.tab, ...estilos.tabActiva }}>Mi Empresa</a>
+        <a href="/mi-empresa/experiencia" style={estilos.tab}>Experiencia</a>
+      </nav>
+
       <h1 style={estilos.titulo}>Mi Empresa</h1>
       <p style={estilos.subtitulo}>
         Este perfil alimenta el motor de evaluación. Puedes guardarlo incompleto y volver después —
@@ -634,6 +639,9 @@ const estilos = {
   subtitulo: { color: '#5B6572', marginBottom: 32, lineHeight: 1.5 },
   formulario: { display: 'flex', flexDirection: 'column', gap: 32 },
   seccion: { border: '1px solid #E3E7EC', borderRadius: 12, padding: 24 },
+  tabs: { display: 'flex', gap: 8, marginBottom: 24, borderBottom: '1px solid #E3E7EC' },
+  tab: { padding: '10px 16px', textDecoration: 'none', color: '#5B6572', fontSize: 14, fontWeight: 500, borderBottom: '2px solid transparent' },
+  tabActiva: { color: '#12181F', borderBottom: '2px solid #12181F' },
   tituloSeccion: { fontSize: 18, fontWeight: 600, marginBottom: 12 },
   tituloSubseccion: { fontSize: 15, fontWeight: 600, marginTop: 20, marginBottom: 8, color: '#374151' },
   ayuda: { color: '#5B6572', fontSize: 14, marginBottom: 16 },
