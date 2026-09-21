@@ -180,7 +180,7 @@ async function leerFilasDelArchivo(archivo) {
   throw new Error('Formato no reconocido. Sube un archivo .csv, .xlsx o .xls.');
 }
 
-function descargarPlantilla() {
+function descargarPlantillaCSV() {
   const encabezados = COLUMNAS_IMPORTACION.map((c) => c.header);
   const filas = [encabezados, FILA_EJEMPLO];
   const csv = filas
@@ -193,6 +193,17 @@ function descargarPlantilla() {
   a.download = 'plantilla_experiencia_licitup.csv';
   a.click();
   URL.revokeObjectURL(url);
+}
+
+async function descargarPlantillaExcel() {
+  const XLSX = await cargarLectorExcel();
+  const encabezados = COLUMNAS_IMPORTACION.map((c) => c.header);
+  const datos = [encabezados, FILA_EJEMPLO];
+  const hoja = XLSX.utils.aoa_to_sheet(datos);
+  hoja['!cols'] = encabezados.map(() => ({ wch: 26 }));
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Experiencia');
+  XLSX.writeFile(libro, 'plantilla_experiencia_licitup.xlsx');
 }
 
 function PreguntaSiNo({ texto, valor, onChange }) {
@@ -227,6 +238,7 @@ export default function ExperienciaPage() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
   const [importando, setImportando] = useState(false);
+  const [preparandoPlantilla, setPreparandoPlantilla] = useState(false);
 
   function cargar() {
     setCargando(true);
@@ -368,7 +380,25 @@ export default function ExperienciaPage() {
           guardarlo como CSV — ambos formatos funcionan.
         </p>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
-          <button type="button" style={estilos.botonSecundario} onClick={descargarPlantilla}>
+          <button
+            type="button"
+            style={estilos.botonSecundario}
+            disabled={preparandoPlantilla}
+            onClick={async () => {
+              setPreparandoPlantilla(true);
+              setMensaje(null);
+              try {
+                await descargarPlantillaExcel();
+              } catch {
+                setMensaje({ tipo: 'error', texto: 'No se pudo preparar la plantilla en Excel. Intenta de nuevo o descárgala en CSV.' });
+              } finally {
+                setPreparandoPlantilla(false);
+              }
+            }}
+          >
+            {preparandoPlantilla ? 'Preparando…' : 'Descargar plantilla (Excel)'}
+          </button>
+          <button type="button" style={estilos.botonSecundario} onClick={descargarPlantillaCSV}>
             Descargar plantilla (CSV)
           </button>
           <label style={{ ...estilos.boton, display: 'inline-block', cursor: 'pointer' }}>
