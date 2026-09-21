@@ -32,10 +32,16 @@ const CAMPOS_INICIALES = {
   rl_organo_autoriza: '',
   rl_facultades_ofertar: null,
   rl_restricciones_estatutarias: '',
+  jur_camara_comercio_vigente: null,
+  jur_rup_vigente_cierre: null,
+  jur_antecedentes_ok: null,
+  jur_formatos_propios_ok: null,
+  jur_rut_vigente: null,
+  jur_documentos_financieros_ok: null,
   cump_tiene_revisor_fiscal: null,
   cump_revisor_fiscal_nombre_tp: '',
   cump_contador_nombre_tp: '',
-  cump_fecha_pago_seguridad_social: '',
+  cump_certificado_ss_parafiscales_30d: null,
   cump_aportes_al_dia: null,
   cump_antecedentes_fiscales_empresa: '',
   cump_antecedentes_fiscales_rl: '',
@@ -80,6 +86,16 @@ const CAMPOS_INICIALES = {
   unspsc_codigos: '',
   descripcion_servicios: '',
 };
+
+// Checklist general de viabilidad (preguntas del levantamiento original, antes de entrar al detalle del Excel)
+const PREGUNTAS_CHECKLIST_GENERAL = [
+  { key: 'jur_camara_comercio_vigente', texto: '¿Siempre puedes obtener una Cámara de Comercio vigente antes del cierre?' },
+  { key: 'jur_rup_vigente_cierre', texto: '¿Siempre puedes obtener un RUP vigente antes del cierre?' },
+  { key: 'jur_antecedentes_ok', texto: '¿Puedes tramitar antecedentes de Procuraduría, Contraloría, Policía, RNMC y REDAM sin problema?' },
+  { key: 'jur_formatos_propios_ok', texto: '¿Estás en capacidad de diligenciar los formatos propios que pida cada entidad (anticorrupción, tratamiento de datos, compromiso de integridad, etc.)?' },
+  { key: 'jur_rut_vigente', texto: '¿Cuentas con RUT vigente?' },
+  { key: 'jur_documentos_financieros_ok', texto: '¿Cuentas con documentos financieros (estados financieros del último año, certificación bancaria, declaración de renta al día, documentos del contador y revisor fiscal si aplica), entre otros?' },
+];
 
 // Preguntas Sí/No del Módulo 4 (Cumplimiento)
 const PREGUNTAS_CUMPLIMIENTO_SINO = [
@@ -148,12 +164,30 @@ const ESTADOS_RUP = [
 ];
 
 // Documentos financieros adicionales al RUP (Módulo 5): antes se pedía adjuntar, ahora solo Sí/No
+// "dependeDe" = solo se muestra si esa otra pregunta del formulario está en Sí
 const DOCUMENTOS_FINANCIEROS_ADICIONALES = [
   { key: 'fin_doc_estados_financieros_notas', texto: 'Estados financieros del último cierre con notas' },
-  { key: 'fin_doc_dictamen_revisor_fiscal', texto: '¿Los estados financieros tienen dictamen del revisor fiscal? (si tiene revisor fiscal)' },
+  { key: 'fin_doc_dictamen_revisor_fiscal', texto: '¿Los estados financieros tienen dictamen del revisor fiscal?', dependeDe: 'cump_tiene_revisor_fiscal' },
   { key: 'fin_doc_declaracion_renta', texto: 'Declaración de renta del último año gravable' },
   { key: 'fin_doc_certificacion_bancaria', texto: 'Certificación bancaria' },
 ];
+
+// Componente reutilizable para una pregunta Sí/No, con soporte para depender de otra pregunta
+function PreguntaSiNo({ texto, valor, onChange }) {
+  return (
+    <div style={estilos.filaPregunta}>
+      <span style={estilos.textoPregunta}>{texto}</span>
+      <div style={estilos.opcionesSiNo}>
+        <label style={estilos.opcionSiNo}>
+          <input type="radio" checked={valor === true} onChange={() => onChange(true)} /> Sí
+        </label>
+        <label style={estilos.opcionSiNo}>
+          <input type="radio" checked={valor === false} onChange={() => onChange(false)} /> No
+        </label>
+      </div>
+    </div>
+  );
+}
 
 export default function MiEmpresaPage() {
   const [form, setForm] = useState(CAMPOS_INICIALES);
@@ -168,7 +202,7 @@ export default function MiEmpresaPage() {
         if (data.empresa) {
           const empresa = { ...data.empresa };
           // Las fechas llegan como timestamp ISO completo; los campos <input type="date"> solo entienden "aaaa-mm-dd"
-          for (const campoFecha of ['fecha_constitucion', 'fecha_camara_comercio', 'rl_fecha_nombramiento', 'cump_fecha_pago_seguridad_social', 'fin_fecha_renovacion_rup', 'fin_fecha_corte_informacion']) {
+          for (const campoFecha of ['fecha_constitucion', 'fecha_camara_comercio', 'rl_fecha_nombramiento', 'fin_fecha_renovacion_rup', 'fin_fecha_corte_informacion']) {
             if (empresa[campoFecha]) {
               empresa[campoFecha] = String(empresa[campoFecha]).slice(0, 10);
             }
@@ -296,14 +330,16 @@ export default function MiEmpresaPage() {
               </label>
             </div>
           </div>
-          <div style={estilos.grid2}>
-            <Campo label="Monto máximo que puede firmar sin autorización (COP) — si tiene límite">
-              <input type="number" step="any" style={estilos.input} value={form.rl_monto_maximo ?? ''} onChange={(e) => actualizarCampo('rl_monto_maximo', e.target.value === '' ? '' : Number(e.target.value))} />
-            </Campo>
-            <Campo label="Órgano que autoriza montos superiores (junta, asamblea) — si tiene límite">
-              <input style={estilos.input} value={form.rl_organo_autoriza ?? ''} onChange={(e) => actualizarCampo('rl_organo_autoriza', e.target.value)} />
-            </Campo>
-          </div>
+          {form.rl_tiene_limite_monto === true && (
+            <div style={estilos.grid2}>
+              <Campo label="Monto máximo que puede firmar sin autorización (COP)">
+                <input type="number" step="any" style={estilos.input} value={form.rl_monto_maximo ?? ''} onChange={(e) => actualizarCampo('rl_monto_maximo', e.target.value === '' ? '' : Number(e.target.value))} />
+              </Campo>
+              <Campo label="Órgano que autoriza montos superiores (junta, asamblea)">
+                <input style={estilos.input} value={form.rl_organo_autoriza ?? ''} onChange={(e) => actualizarCampo('rl_organo_autoriza', e.target.value)} />
+              </Campo>
+            </div>
+          )}
           <div style={estilos.filaPregunta}>
             <span style={estilos.textoPregunta}>¿Sus facultades incluyen presentar ofertas y firmar contratos con entidades públicas?</span>
             <div style={estilos.opcionesSiNo}>
@@ -370,44 +406,36 @@ export default function MiEmpresaPage() {
           <h2 style={estilos.tituloSeccion}>Cumplimiento y antecedentes</h2>
           <p style={estilos.ayuda}>Respóndelas una sola vez. Con esto al día, el checklist de cumplimiento de cualquier proceso nuevo se da por resuelto automáticamente.</p>
 
+          <h3 style={estilos.tituloSubseccion}>Checklist general de viabilidad</h3>
+          <p style={estilos.ayuda}>Un vistazo rápido de si la empresa está en capacidad de participar, antes de entrar al detalle.</p>
+          {PREGUNTAS_CHECKLIST_GENERAL.map((p) => (
+            <PreguntaSiNo key={p.key} texto={p.texto} valor={form[p.key]} onChange={(v) => actualizarCampo(p.key, v)} />
+          ))}
+
           <h3 style={estilos.tituloSubseccion}>Contabilidad y revisoría fiscal</h3>
-          <div style={estilos.filaPregunta}>
-            <span style={estilos.textoPregunta}>¿Tiene revisor fiscal?</span>
-            <div style={estilos.opcionesSiNo}>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_tiene_revisor_fiscal" checked={form.cump_tiene_revisor_fiscal === true} onChange={() => actualizarCampo('cump_tiene_revisor_fiscal', true)} /> Sí
-              </label>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_tiene_revisor_fiscal" checked={form.cump_tiene_revisor_fiscal === false} onChange={() => actualizarCampo('cump_tiene_revisor_fiscal', false)} /> No
-              </label>
-            </div>
-          </div>
+          <PreguntaSiNo texto="¿Tiene revisor fiscal?" valor={form.cump_tiene_revisor_fiscal} onChange={(v) => actualizarCampo('cump_tiene_revisor_fiscal', v)} />
           <div style={estilos.grid2}>
-            <Campo label="Nombre y T.P. del revisor fiscal (si aplica)">
-              <input style={estilos.input} placeholder="Juan Pérez – T.P. 12345-T" value={form.cump_revisor_fiscal_nombre_tp ?? ''} onChange={(e) => actualizarCampo('cump_revisor_fiscal_nombre_tp', e.target.value)} />
-            </Campo>
+            {form.cump_tiene_revisor_fiscal === true && (
+              <Campo label="Nombre y T.P. del revisor fiscal">
+                <input style={estilos.input} placeholder="Juan Pérez – T.P. 12345-T" value={form.cump_revisor_fiscal_nombre_tp ?? ''} onChange={(e) => actualizarCampo('cump_revisor_fiscal_nombre_tp', e.target.value)} />
+              </Campo>
+            )}
             <Campo label="Nombre y T.P. del contador público">
               <input style={estilos.input} placeholder="Laura Díaz – T.P. 67890-T" value={form.cump_contador_nombre_tp ?? ''} onChange={(e) => actualizarCampo('cump_contador_nombre_tp', e.target.value)} />
             </Campo>
           </div>
 
           <h3 style={estilos.tituloSubseccion}>Seguridad social y parafiscales</h3>
-          <div style={estilos.grid2}>
-            <Campo label="Fecha del último certificado de pago de seguridad social y parafiscales">
-              <input type="date" style={estilos.input} value={form.cump_fecha_pago_seguridad_social ?? ''} onChange={(e) => actualizarCampo('cump_fecha_pago_seguridad_social', e.target.value)} />
-            </Campo>
-          </div>
-          <div style={estilos.filaPregunta}>
-            <span style={estilos.textoPregunta}>¿Está al día en aportes (sin deudas ni mora)?</span>
-            <div style={estilos.opcionesSiNo}>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_aportes_al_dia" checked={form.cump_aportes_al_dia === true} onChange={() => actualizarCampo('cump_aportes_al_dia', true)} /> Sí
-              </label>
-              <label style={estilos.opcionSiNo}>
-                <input type="radio" name="cump_aportes_al_dia" checked={form.cump_aportes_al_dia === false} onChange={() => actualizarCampo('cump_aportes_al_dia', false)} /> No
-              </label>
-            </div>
-          </div>
+          <PreguntaSiNo
+            texto="¿Puedes contar con un certificado de pago a seguridad social y parafiscales menor a 30 días?"
+            valor={form.cump_certificado_ss_parafiscales_30d}
+            onChange={(v) => actualizarCampo('cump_certificado_ss_parafiscales_30d', v)}
+          />
+          <PreguntaSiNo
+            texto="¿Está al día en aportes (sin deudas ni mora)?"
+            valor={form.cump_aportes_al_dia}
+            onChange={(v) => actualizarCampo('cump_aportes_al_dia', v)}
+          />
 
           <h3 style={estilos.tituloSubseccion}>Antecedentes</h3>
           <p style={estilos.ayuda}>Consulta cada uno en la entidad correspondiente y selecciona el resultado.</p>
@@ -433,9 +461,11 @@ export default function MiEmpresaPage() {
               </label>
             </div>
           </div>
-          <Campo label="Detalle de multas, sanciones o incumplimientos (entidad, fecha, valor, estado) — si respondió Sí arriba">
-            <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_sanciones ?? ''} onChange={(e) => actualizarCampo('cump_detalle_sanciones', e.target.value)} />
-          </Campo>
+          {form.cump_tiene_sanciones_5_anios === true && (
+            <Campo label="Detalle de multas, sanciones o incumplimientos (entidad, fecha, valor, estado)">
+              <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_sanciones ?? ''} onChange={(e) => actualizarCampo('cump_detalle_sanciones', e.target.value)} />
+            </Campo>
+          )}
           <div style={estilos.filaPregunta}>
             <span style={estilos.textoPregunta}>¿Tiene procesos judiciales, arbitrales o embargos relevantes en su contra?</span>
             <div style={estilos.opcionesSiNo}>
@@ -447,9 +477,11 @@ export default function MiEmpresaPage() {
               </label>
             </div>
           </div>
-          <Campo label="Detalle de esos procesos (cuantía, estado) — si respondió Sí arriba">
-            <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_procesos_judiciales ?? ''} onChange={(e) => actualizarCampo('cump_detalle_procesos_judiciales', e.target.value)} />
-          </Campo>
+          {form.cump_tiene_procesos_judiciales === true && (
+            <Campo label="Detalle de esos procesos (cuantía, estado)">
+              <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_procesos_judiciales ?? ''} onChange={(e) => actualizarCampo('cump_detalle_procesos_judiciales', e.target.value)} />
+            </Campo>
+          )}
 
           <h3 style={estilos.tituloSubseccion}>Sistemas de gestión y contratación electrónica</h3>
           <div style={estilos.grid2}>
@@ -460,17 +492,7 @@ export default function MiEmpresaPage() {
           {PREGUNTAS_CUMPLIMIENTO_SINO.filter((p) =>
             ['cump_politica_proteccion_datos', 'cump_programa_etica_sarlaft', 'cump_secop_ii_activo'].includes(p.key)
           ).map((p) => (
-            <div key={p.key} style={estilos.filaPregunta}>
-              <span style={estilos.textoPregunta}>{p.texto}</span>
-              <div style={estilos.opcionesSiNo}>
-                <label style={estilos.opcionSiNo}>
-                  <input type="radio" name={p.key} checked={form[p.key] === true} onChange={() => actualizarCampo(p.key, true)} /> Sí
-                </label>
-                <label style={estilos.opcionSiNo}>
-                  <input type="radio" name={p.key} checked={form[p.key] === false} onChange={() => actualizarCampo(p.key, false)} /> No
-                </label>
-              </div>
-            </div>
+            <PreguntaSiNo key={p.key} texto={p.texto} valor={form[p.key]} onChange={(v) => actualizarCampo(p.key, v)} />
           ))}
         </section>
 
@@ -539,19 +561,11 @@ export default function MiEmpresaPage() {
 
           <h3 style={estilos.tituloSubseccion}>Documentos financieros adicionales al RUP</h3>
           <p style={estilos.ayuda}>Solo marca si los tienes disponibles — no hace falta adjuntarlos aquí.</p>
-          {DOCUMENTOS_FINANCIEROS_ADICIONALES.map((p) => (
-            <div key={p.key} style={estilos.filaPregunta}>
-              <span style={estilos.textoPregunta}>{p.texto}</span>
-              <div style={estilos.opcionesSiNo}>
-                <label style={estilos.opcionSiNo}>
-                  <input type="radio" name={p.key} checked={form[p.key] === true} onChange={() => actualizarCampo(p.key, true)} /> Sí
-                </label>
-                <label style={estilos.opcionSiNo}>
-                  <input type="radio" name={p.key} checked={form[p.key] === false} onChange={() => actualizarCampo(p.key, false)} /> No
-                </label>
-              </div>
-            </div>
-          ))}
+          {DOCUMENTOS_FINANCIEROS_ADICIONALES
+            .filter((p) => !p.dependeDe || form[p.dependeDe] === true)
+            .map((p) => (
+              <PreguntaSiNo key={p.key} texto={p.texto} valor={form[p.key]} onChange={(v) => actualizarCampo(p.key, v)} />
+            ))}
         </section>
 
         <section style={estilos.seccion}>
