@@ -532,6 +532,7 @@ export default function MiEmpresaPage() {
       <nav style={estilos.tabs}>
         <a href="/mi-empresa" style={{ ...estilos.tab, ...estilos.tabActiva }}>Mi Empresa</a>
         <a href="/mi-empresa/experiencia" style={estilos.tab}>Experiencia</a>
+        <a href="/mi-empresa/talento" style={estilos.tab}>Talento</a>
       </nav>
 
       <h1 style={estilos.titulo}>Mi Empresa</h1>
