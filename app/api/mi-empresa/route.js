@@ -121,6 +121,10 @@ export async function POST(request) {
       fin_doc_declaracion_renta = null,
       fin_doc_certificacion_bancaria = null,
 
+      // Módulo 5b — Cupos y garantías
+      cupos_corredor_seguros_seriedad = null,
+      cupos_capacidad_polizas_cumplimiento = null,
+
       // Portafolio
       unspsc_codigos = null,
       descripcion_servicios = null,
@@ -158,6 +162,7 @@ export async function POST(request) {
         fin_rentabilidad_patrimonio, fin_rentabilidad_activo,
         fin_doc_estados_financieros_notas, fin_doc_dictamen_revisor_fiscal,
         fin_doc_declaracion_renta, fin_doc_certificacion_bancaria,
+        cupos_corredor_seguros_seriedad, cupos_capacidad_polizas_cumplimiento,
         unspsc_codigos, descripcion_servicios, updated_at
       ) VALUES (
         1,
@@ -190,6 +195,7 @@ export async function POST(request) {
         ${fin_rentabilidad_patrimonio}, ${fin_rentabilidad_activo},
         ${fin_doc_estados_financieros_notas}, ${fin_doc_dictamen_revisor_fiscal},
         ${fin_doc_declaracion_renta}, ${fin_doc_certificacion_bancaria},
+        ${cupos_corredor_seguros_seriedad}, ${cupos_capacidad_polizas_cumplimiento},
         ${unspsc_codigos}, ${descripcion_servicios}, now()
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -273,6 +279,8 @@ export async function POST(request) {
         fin_doc_dictamen_revisor_fiscal = EXCLUDED.fin_doc_dictamen_revisor_fiscal,
         fin_doc_declaracion_renta = EXCLUDED.fin_doc_declaracion_renta,
         fin_doc_certificacion_bancaria = EXCLUDED.fin_doc_certificacion_bancaria,
+        cupos_corredor_seguros_seriedad = EXCLUDED.cupos_corredor_seguros_seriedad,
+        cupos_capacidad_polizas_cumplimiento = EXCLUDED.cupos_capacidad_polizas_cumplimiento,
         unspsc_codigos = EXCLUDED.unspsc_codigos,
         descripcion_servicios = EXCLUDED.descripcion_servicios,
         updated_at = now()
