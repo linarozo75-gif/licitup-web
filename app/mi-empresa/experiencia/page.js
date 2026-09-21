@@ -149,6 +149,37 @@ function parsearCSV(texto) {
   return filas.filter((f) => f.some((v) => v.trim() !== ''));
 }
 
+// Carga la librería para leer archivos de Excel directamente en el navegador (solo si hace falta)
+function cargarLectorExcel() {
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) { resolve(window.XLSX); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = () => reject(new Error('No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo.'));
+    document.body.appendChild(script);
+  });
+}
+
+async function leerFilasDelArchivo(archivo) {
+  const nombre = archivo.name.toLowerCase();
+  if (nombre.endsWith('.csv')) {
+    const texto = await archivo.text();
+    return parsearCSV(texto);
+  }
+  if (nombre.endsWith('.xlsx') || nombre.endsWith('.xls')) {
+    const XLSX = await cargarLectorExcel();
+    const buffer = await archivo.arrayBuffer();
+    const libro = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const hoja = libro.Sheets[libro.SheetNames[0]];
+    const filasCrudas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false, dateNF: 'yyyy-mm-dd' });
+    return filasCrudas
+      .map((fila) => fila.map((v) => (v === undefined || v === null ? '' : String(v))))
+      .filter((f) => f.some((v) => v.trim() !== ''));
+  }
+  throw new Error('Formato no reconocido. Sube un archivo .csv, .xlsx o .xls.');
+}
+
 function descargarPlantilla() {
   const encabezados = COLUMNAS_IMPORTACION.map((c) => c.header);
   const filas = [encabezados, FILA_EJEMPLO];
@@ -272,8 +303,7 @@ export default function ExperienciaPage() {
     setImportando(true);
     setMensaje(null);
     try {
-      const texto = await archivo.text();
-      const filas = parsearCSV(texto);
+      const filas = await leerFilasDelArchivo(archivo);
       const filasDeDatos = filas.slice(1); // la primera fila son los encabezados
 
       let exitosas = 0;
@@ -308,8 +338,8 @@ export default function ExperienciaPage() {
           texto: `Se importaron ${exitosas} contrato(s). Hubo un problema en la(s) fila(s): ${filasConError.join(', ')}.`,
         });
       }
-    } catch {
-      setMensaje({ tipo: 'error', texto: 'No se pudo leer el archivo. Verifica que sea un CSV exportado desde Excel.' });
+    } catch (error) {
+      setMensaje({ tipo: 'error', texto: error?.message || 'No se pudo leer el archivo. Verifica que sea un CSV o Excel válido.' });
     } finally {
       setImportando(false);
     }
@@ -333,16 +363,17 @@ export default function ExperienciaPage() {
       <section style={estilos.seccion}>
         <h2 style={estilos.tituloSeccion}>Cargar varios contratos a la vez</h2>
         <p style={estilos.ayuda}>
-          Si tienes muchos contratos, es más rápido descargar la plantilla, llenarla en Excel y subirla de una
-          sola vez, en vez de agregarlos uno por uno. Guarda el archivo de Excel como <strong>CSV (delimitado por comas)</strong> antes de subirlo.
+          Si tienes muchos contratos, es más rápido descargar la plantilla, llenarla y subirla de una sola vez,
+          en vez de agregarlos uno por uno. Puedes subir el archivo de Excel (.xlsx) tal cual, sin necesidad de
+          guardarlo como CSV — ambos formatos funcionan.
         </p>
         <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap' }}>
           <button type="button" style={estilos.botonSecundario} onClick={descargarPlantilla}>
             Descargar plantilla (CSV)
           </button>
           <label style={{ ...estilos.boton, display: 'inline-block', cursor: 'pointer' }}>
-            {importando ? 'Importando…' : 'Subir CSV lleno'}
-            <input type="file" accept=".csv" onChange={manejarArchivoImportado} disabled={importando} style={{ display: 'none' }} />
+            {importando ? 'Importando…' : 'Subir Excel o CSV lleno'}
+            <input type="file" accept=".csv,.xlsx,.xls" onChange={manejarArchivoImportado} disabled={importando} style={{ display: 'none' }} />
           </label>
         </div>
       </section>
