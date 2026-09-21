@@ -53,6 +53,19 @@ const CAMPOS_INICIALES = {
   cump_politica_proteccion_datos: null,
   cump_programa_etica_sarlaft: null,
   cump_secop_ii_activo: null,
+  fin_estado_rup: '',
+  fin_fecha_renovacion_rup: '',
+  fin_fecha_corte_informacion: '',
+  fin_k_residual: '',
+  fin_activo_corriente: '',
+  fin_activo_total: '',
+  fin_pasivo_corriente: '',
+  fin_pasivo_total: '',
+  fin_patrimonio: '',
+  fin_ingresos_operacionales: '',
+  fin_utilidad_operacional: '',
+  fin_utilidad_neta: '',
+  fin_gastos_intereses: '',
   fin_regimen: 'normal',
   fin_indice_liquidez: '',
   fin_indice_endeudamiento: '',
@@ -60,6 +73,10 @@ const CAMPOS_INICIALES = {
   fin_capital_trabajo: '',
   fin_rentabilidad_patrimonio: '',
   fin_rentabilidad_activo: '',
+  fin_doc_estados_financieros_notas: null,
+  fin_doc_dictamen_revisor_fiscal: null,
+  fin_doc_declaracion_renta: null,
+  fin_doc_certificacion_bancaria: null,
   unspsc_codigos: '',
   descripcion_servicios: '',
 };
@@ -122,6 +139,22 @@ const TAMANOS_EMPRESA = [
   { value: 'grande', label: 'Grande' },
 ];
 
+const ESTADOS_RUP = [
+  { value: '', label: 'Selecciona...' },
+  { value: 'en_firme', label: 'En firme' },
+  { value: 'en_proceso_renovacion', label: 'En proceso de renovación' },
+  { value: 'suspendido', label: 'Suspendido' },
+  { value: 'cancelado', label: 'Cancelado' },
+];
+
+// Documentos financieros adicionales al RUP (Módulo 5): antes se pedía adjuntar, ahora solo Sí/No
+const DOCUMENTOS_FINANCIEROS_ADICIONALES = [
+  { key: 'fin_doc_estados_financieros_notas', texto: 'Estados financieros del último cierre con notas' },
+  { key: 'fin_doc_dictamen_revisor_fiscal', texto: '¿Los estados financieros tienen dictamen del revisor fiscal? (si tiene revisor fiscal)' },
+  { key: 'fin_doc_declaracion_renta', texto: 'Declaración de renta del último año gravable' },
+  { key: 'fin_doc_certificacion_bancaria', texto: 'Certificación bancaria' },
+];
+
 export default function MiEmpresaPage() {
   const [form, setForm] = useState(CAMPOS_INICIALES);
   const [cargando, setCargando] = useState(true);
@@ -135,7 +168,7 @@ export default function MiEmpresaPage() {
         if (data.empresa) {
           const empresa = { ...data.empresa };
           // Las fechas llegan como timestamp ISO completo; los campos <input type="date"> solo entienden "aaaa-mm-dd"
-          for (const campoFecha of ['fecha_constitucion', 'fecha_camara_comercio', 'rl_fecha_nombramiento', 'cump_fecha_pago_seguridad_social']) {
+          for (const campoFecha of ['fecha_constitucion', 'fecha_camara_comercio', 'rl_fecha_nombramiento', 'cump_fecha_pago_seguridad_social', 'fin_fecha_renovacion_rup', 'fin_fecha_corte_informacion']) {
             if (empresa[campoFecha]) {
               empresa[campoFecha] = String(empresa[campoFecha]).slice(0, 10);
             }
@@ -442,7 +475,41 @@ export default function MiEmpresaPage() {
         </section>
 
         <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Indicadores financieros</h2>
+          <h2 style={estilos.tituloSeccion}>Financiero</h2>
+          <p style={estilos.ayuda}>Los datos base (en COP) permiten recalcular los indicadores automáticamente y combinarlos cuando se oferta en Unión Temporal o Consorcio.</p>
+
+          <h3 style={estilos.tituloSubseccion}>Registro Único de Proponentes (RUP)</h3>
+          <div style={estilos.grid2}>
+            <Campo label="Estado del RUP">
+              <select style={estilos.input} value={form.fin_estado_rup ?? ''} onChange={(e) => actualizarCampo('fin_estado_rup', e.target.value)}>
+                {ESTADOS_RUP.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+              </select>
+            </Campo>
+            <Campo label="Fecha de renovación del RUP">
+              <input type="date" style={estilos.input} value={form.fin_fecha_renovacion_rup ?? ''} onChange={(e) => actualizarCampo('fin_fecha_renovacion_rup', e.target.value)} />
+            </Campo>
+            <Campo label="Fecha de corte de la información financiera del RUP">
+              <input type="date" style={estilos.input} value={form.fin_fecha_corte_informacion ?? ''} onChange={(e) => actualizarCampo('fin_fecha_corte_informacion', e.target.value)} />
+            </Campo>
+            <Campo label="Capacidad de contratación K residual — COP (solo obra pública)">
+              <input type="number" step="any" style={estilos.input} value={form.fin_k_residual ?? ''} onChange={(e) => actualizarCampo('fin_k_residual', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
+          </div>
+
+          <h3 style={estilos.tituloSubseccion}>Datos base (cifras en COP, tomadas del RUP o de los estados financieros)</h3>
+          <div style={estilos.grid2}>
+            <Campo label="Activo corriente"><input type="number" step="any" style={estilos.input} value={form.fin_activo_corriente ?? ''} onChange={(e) => actualizarCampo('fin_activo_corriente', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Activo total"><input type="number" step="any" style={estilos.input} value={form.fin_activo_total ?? ''} onChange={(e) => actualizarCampo('fin_activo_total', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Pasivo corriente"><input type="number" step="any" style={estilos.input} value={form.fin_pasivo_corriente ?? ''} onChange={(e) => actualizarCampo('fin_pasivo_corriente', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Pasivo total"><input type="number" step="any" style={estilos.input} value={form.fin_pasivo_total ?? ''} onChange={(e) => actualizarCampo('fin_pasivo_total', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Patrimonio"><input type="number" step="any" style={estilos.input} value={form.fin_patrimonio ?? ''} onChange={(e) => actualizarCampo('fin_patrimonio', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Ingresos operacionales"><input type="number" step="any" style={estilos.input} value={form.fin_ingresos_operacionales ?? ''} onChange={(e) => actualizarCampo('fin_ingresos_operacionales', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Utilidad operacional"><input type="number" step="any" style={estilos.input} value={form.fin_utilidad_operacional ?? ''} onChange={(e) => actualizarCampo('fin_utilidad_operacional', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Utilidad neta"><input type="number" step="any" style={estilos.input} value={form.fin_utilidad_neta ?? ''} onChange={(e) => actualizarCampo('fin_utilidad_neta', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+            <Campo label="Gastos de intereses"><input type="number" step="any" style={estilos.input} value={form.fin_gastos_intereses ?? ''} onChange={(e) => actualizarCampo('fin_gastos_intereses', e.target.value === '' ? '' : Number(e.target.value))} /></Campo>
+          </div>
+
+          <h3 style={estilos.tituloSubseccion}>Indicadores tal como aparecen en el RUP</h3>
           <Campo label="Régimen">
             <select style={estilos.input} value={form.fin_regimen ?? 'normal'} onChange={(e) => actualizarCampo('fin_regimen', e.target.value)}>
               <option value="normal">Normal</option>
@@ -450,18 +517,41 @@ export default function MiEmpresaPage() {
             </select>
           </Campo>
           <div style={estilos.grid2}>
-            {INDICADORES_FINANCIEROS.map((f) => (
-              <Campo key={f.key} label={f.label}>
-                <input
-                  type="number"
-                  step="any"
-                  style={estilos.input}
-                  value={form[f.key] ?? ''}
-                  onChange={(e) => actualizarCampo(f.key, e.target.value === '' ? '' : Number(e.target.value))}
-                />
-              </Campo>
-            ))}
+            <Campo label="Índice de Liquidez">
+              <input type="number" step="any" style={estilos.input} value={form.fin_indice_liquidez ?? ''} onChange={(e) => actualizarCampo('fin_indice_liquidez', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
+            <Campo label="Índice de Endeudamiento (%)">
+              <input type="number" step="any" style={estilos.input} value={form.fin_indice_endeudamiento ?? ''} onChange={(e) => actualizarCampo('fin_indice_endeudamiento', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
+            <Campo label="Razón de Cobertura de Intereses (número, o escribe 'Indeterminado')">
+              <input style={estilos.input} placeholder="11.71 / Indeterminado" value={form.fin_razon_cobertura_intereses ?? ''} onChange={(e) => actualizarCampo('fin_razon_cobertura_intereses', e.target.value)} />
+            </Campo>
+            <Campo label="Capital de Trabajo (COP)">
+              <input type="number" step="any" style={estilos.input} value={form.fin_capital_trabajo ?? ''} onChange={(e) => actualizarCampo('fin_capital_trabajo', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
+            <Campo label="Rentabilidad del Patrimonio — ROE (%)">
+              <input type="number" step="any" style={estilos.input} value={form.fin_rentabilidad_patrimonio ?? ''} onChange={(e) => actualizarCampo('fin_rentabilidad_patrimonio', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
+            <Campo label="Rentabilidad del Activo — ROA (%)">
+              <input type="number" step="any" style={estilos.input} value={form.fin_rentabilidad_activo ?? ''} onChange={(e) => actualizarCampo('fin_rentabilidad_activo', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
           </div>
+
+          <h3 style={estilos.tituloSubseccion}>Documentos financieros adicionales al RUP</h3>
+          <p style={estilos.ayuda}>Solo marca si los tienes disponibles — no hace falta adjuntarlos aquí.</p>
+          {DOCUMENTOS_FINANCIEROS_ADICIONALES.map((p) => (
+            <div key={p.key} style={estilos.filaPregunta}>
+              <span style={estilos.textoPregunta}>{p.texto}</span>
+              <div style={estilos.opcionesSiNo}>
+                <label style={estilos.opcionSiNo}>
+                  <input type="radio" name={p.key} checked={form[p.key] === true} onChange={() => actualizarCampo(p.key, true)} /> Sí
+                </label>
+                <label style={estilos.opcionSiNo}>
+                  <input type="radio" name={p.key} checked={form[p.key] === false} onChange={() => actualizarCampo(p.key, false)} /> No
+                </label>
+              </div>
+            </div>
+          ))}
         </section>
 
         <section style={estilos.seccion}>
