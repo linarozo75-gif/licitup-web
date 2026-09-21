@@ -125,6 +125,14 @@ export async function POST(request) {
       cupos_corredor_seguros_seriedad = null,
       cupos_capacidad_polizas_cumplimiento = null,
 
+      // Módulo 9 — Capacidades y portafolio
+      cap_infraestructura_herramientas = null,
+      cap_sedes_ciudades = null,
+      cap_esquema_soporte = null,
+      cap_metodologias = null,
+      cap_servicios_principales = null,
+      cap_sectores_experiencia = null,
+
       // Portafolio
       unspsc_codigos = null,
       descripcion_servicios = null,
@@ -163,6 +171,8 @@ export async function POST(request) {
         fin_doc_estados_financieros_notas, fin_doc_dictamen_revisor_fiscal,
         fin_doc_declaracion_renta, fin_doc_certificacion_bancaria,
         cupos_corredor_seguros_seriedad, cupos_capacidad_polizas_cumplimiento,
+        cap_infraestructura_herramientas, cap_sedes_ciudades, cap_esquema_soporte,
+        cap_metodologias, cap_servicios_principales, cap_sectores_experiencia,
         unspsc_codigos, descripcion_servicios, updated_at
       ) VALUES (
         1,
@@ -196,6 +206,8 @@ export async function POST(request) {
         ${fin_doc_estados_financieros_notas}, ${fin_doc_dictamen_revisor_fiscal},
         ${fin_doc_declaracion_renta}, ${fin_doc_certificacion_bancaria},
         ${cupos_corredor_seguros_seriedad}, ${cupos_capacidad_polizas_cumplimiento},
+        ${cap_infraestructura_herramientas}, ${cap_sedes_ciudades}, ${cap_esquema_soporte},
+        ${cap_metodologias}, ${cap_servicios_principales}, ${cap_sectores_experiencia},
         ${unspsc_codigos}, ${descripcion_servicios}, now()
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -281,6 +293,12 @@ export async function POST(request) {
         fin_doc_certificacion_bancaria = EXCLUDED.fin_doc_certificacion_bancaria,
         cupos_corredor_seguros_seriedad = EXCLUDED.cupos_corredor_seguros_seriedad,
         cupos_capacidad_polizas_cumplimiento = EXCLUDED.cupos_capacidad_polizas_cumplimiento,
+        cap_infraestructura_herramientas = EXCLUDED.cap_infraestructura_herramientas,
+        cap_sedes_ciudades = EXCLUDED.cap_sedes_ciudades,
+        cap_esquema_soporte = EXCLUDED.cap_esquema_soporte,
+        cap_metodologias = EXCLUDED.cap_metodologias,
+        cap_servicios_principales = EXCLUDED.cap_servicios_principales,
+        cap_sectores_experiencia = EXCLUDED.cap_sectores_experiencia,
         unspsc_codigos = EXCLUDED.unspsc_codigos,
         descripcion_servicios = EXCLUDED.descripcion_servicios,
         updated_at = now()
