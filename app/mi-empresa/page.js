@@ -13,8 +13,6 @@ const CAMPOS_INICIALES = {
   sucursales: '',
   fecha_camara_comercio: '',
   matricula_renovada_anio: '',
-  representante_legal: '',
-  revisor_fiscal: '',
   ciiu_principal: '',
   ciiu_secundarios: '',
   objeto_social: '',
@@ -23,12 +21,38 @@ const CAMPOS_INICIALES = {
   correo_notificaciones: '',
   telefono_contacto: '',
   sitio_web: '',
-  jur_camara_comercio_vigente: null,
-  jur_antecedentes_ok: null,
-  jur_formatos_propios_ok: null,
-  jur_parafiscales_revisor_ok: null,
-  jur_rut_vigente: null,
-  jur_documentos_financieros_ok: null,
+  rl_nombre_completo: '',
+  rl_tipo_num_documento: '',
+  rl_ciudad_expedicion: '',
+  rl_correo: '',
+  rl_fecha_nombramiento: '',
+  rl_suplente: '',
+  rl_tiene_limite_monto: null,
+  rl_monto_maximo: '',
+  rl_organo_autoriza: '',
+  rl_facultades_ofertar: null,
+  rl_restricciones_estatutarias: '',
+  cump_tiene_revisor_fiscal: null,
+  cump_revisor_fiscal_nombre_tp: '',
+  cump_contador_nombre_tp: '',
+  cump_fecha_pago_seguridad_social: '',
+  cump_aportes_al_dia: null,
+  cump_antecedentes_fiscales_empresa: '',
+  cump_antecedentes_fiscales_rl: '',
+  cump_antecedentes_disciplinarios_empresa: '',
+  cump_antecedentes_disciplinarios_rl: '',
+  cump_antecedentes_judiciales_rl: '',
+  cump_medidas_correctivas_rnmc_rl: '',
+  cump_redam_rl: '',
+  cump_inhabilidades_delitos_menores_rl: '',
+  cump_tiene_sanciones_5_anios: null,
+  cump_detalle_sanciones: '',
+  cump_tiene_procesos_judiciales: null,
+  cump_detalle_procesos_judiciales: '',
+  cump_puntaje_sgsst: '',
+  cump_politica_proteccion_datos: null,
+  cump_programa_etica_sarlaft: null,
+  cump_secop_ii_activo: null,
   fin_regimen: 'normal',
   fin_indice_liquidez: '',
   fin_indice_endeudamiento: '',
@@ -40,13 +64,34 @@ const CAMPOS_INICIALES = {
   descripcion_servicios: '',
 };
 
-const PREGUNTAS_JURIDICAS = [
-  { key: 'jur_camara_comercio_vigente', texto: '¿Siempre puedes obtener una Cámara de Comercio vigente antes del cierre?' },
-  { key: 'jur_antecedentes_ok', texto: '¿Puedes tramitar antecedentes de Procuraduría, Contraloría, Policía, RNMC y REDAM sin problema?' },
-  { key: 'jur_formatos_propios_ok', texto: '¿Estás en capacidad de diligenciar los formatos propios que pida cada entidad (anticorrupción, tratamiento de datos, compromiso de integridad, etc.)?' },
-  { key: 'jur_parafiscales_revisor_ok', texto: '¿Cuentas con certificado de Paz y salvo de parafiscales menor a 30 días y documentos del revisor fiscal si aplica?' },
-  { key: 'jur_rut_vigente', texto: '¿Cuentas con RUT vigente?' },
-  { key: 'jur_documentos_financieros_ok', texto: '¿Cuentas con documentos financieros (estados financieros del último año, certificación bancaria, declaración de renta al día, documentos del contador y revisor fiscal si aplica), entre otros?' },
+// Preguntas Sí/No del Módulo 4 (Cumplimiento)
+const PREGUNTAS_CUMPLIMIENTO_SINO = [
+  { key: 'cump_tiene_revisor_fiscal', texto: '¿Tiene revisor fiscal?' },
+  { key: 'cump_aportes_al_dia', texto: '¿Está al día en aportes a seguridad social y parafiscales (sin deudas ni mora)?' },
+  { key: 'cump_tiene_sanciones_5_anios', texto: '¿Ha tenido multas, sanciones, caducidades o incumplimientos con entidades estatales en los últimos 5 años?' },
+  { key: 'cump_tiene_procesos_judiciales', texto: '¿Tiene procesos judiciales, arbitrales o embargos relevantes en su contra?' },
+  { key: 'cump_politica_proteccion_datos', texto: '¿Tiene política de protección de datos personales (Ley 1581 de 2012)?' },
+  { key: 'cump_programa_etica_sarlaft', texto: '¿Tiene programa de ética, SARLAFT o antisoborno?' },
+  { key: 'cump_secop_ii_activo', texto: '¿Tiene usuario activo en SECOP II y firma electrónica vigente?' },
+];
+
+// Preguntas de antecedentes: tres respuestas posibles en vez de Sí/No
+const PREGUNTAS_ANTECEDENTES = [
+  { key: 'cump_antecedentes_fiscales_empresa', texto: 'Antecedentes fiscales (Contraloría) — empresa' },
+  { key: 'cump_antecedentes_fiscales_rl', texto: 'Antecedentes fiscales (Contraloría) — representante legal' },
+  { key: 'cump_antecedentes_disciplinarios_empresa', texto: 'Antecedentes disciplinarios (Procuraduría) — empresa' },
+  { key: 'cump_antecedentes_disciplinarios_rl', texto: 'Antecedentes disciplinarios (Procuraduría) — representante legal' },
+  { key: 'cump_antecedentes_judiciales_rl', texto: 'Antecedentes judiciales (Policía) — representante legal' },
+  { key: 'cump_medidas_correctivas_rnmc_rl', texto: 'Medidas correctivas (RNMC) — representante legal' },
+  { key: 'cump_redam_rl', texto: 'REDAM (deudores alimentarios morosos) — representante legal' },
+  { key: 'cump_inhabilidades_delitos_menores_rl', texto: 'Inhabilidades por delitos contra menores — representante legal' },
+];
+
+const OPCIONES_ANTECEDENTES = [
+  { value: '', label: 'Selecciona...' },
+  { value: 'sin_antecedentes', label: 'Sin antecedentes / No registra' },
+  { value: 'registra_antecedentes', label: 'Registra antecedentes' },
+  { value: 'pendiente_consulta', label: 'Pendiente de consulta' },
 ];
 
 const INDICADORES_FINANCIEROS = [
@@ -90,7 +135,7 @@ export default function MiEmpresaPage() {
         if (data.empresa) {
           const empresa = { ...data.empresa };
           // Las fechas llegan como timestamp ISO completo; los campos <input type="date"> solo entienden "aaaa-mm-dd"
-          for (const campoFecha of ['fecha_constitucion', 'fecha_camara_comercio']) {
+          for (const campoFecha of ['fecha_constitucion', 'fecha_camara_comercio', 'rl_fecha_nombramiento', 'cump_fecha_pago_seguridad_social']) {
             if (empresa[campoFecha]) {
               empresa[campoFecha] = String(empresa[campoFecha]).slice(0, 10);
             }
@@ -179,13 +224,71 @@ export default function MiEmpresaPage() {
             <Campo label="Matrícula mercantil renovada hasta (año)">
               <input type="number" style={estilos.input} value={form.matricula_renovada_anio ?? ''} onChange={(e) => actualizarCampo('matricula_renovada_anio', e.target.value === '' ? '' : Number(e.target.value))} />
             </Campo>
-            <Campo label="Representante legal">
-              <input style={estilos.input} value={form.representante_legal ?? ''} onChange={(e) => actualizarCampo('representante_legal', e.target.value)} />
+          </div>
+        </section>
+
+        <section style={estilos.seccion}>
+          <h2 style={estilos.tituloSeccion}>Representación legal y facultades</h2>
+          <p style={estilos.ayuda}>Define si la empresa puede presentar oferta por sí sola según el valor del proceso.</p>
+          <div style={estilos.grid2}>
+            <Campo label="Nombre completo del representante legal">
+              <input style={estilos.input} value={form.rl_nombre_completo ?? ''} onChange={(e) => actualizarCampo('rl_nombre_completo', e.target.value)} />
             </Campo>
-            <Campo label="Revisor fiscal (si aplica)">
-              <input style={estilos.input} value={form.revisor_fiscal ?? ''} onChange={(e) => actualizarCampo('revisor_fiscal', e.target.value)} />
+            <Campo label="Tipo y número de documento">
+              <input style={estilos.input} placeholder="CC 52.000.000" value={form.rl_tipo_num_documento ?? ''} onChange={(e) => actualizarCampo('rl_tipo_num_documento', e.target.value)} />
+            </Campo>
+            <Campo label="Ciudad de expedición del documento">
+              <input style={estilos.input} value={form.rl_ciudad_expedicion ?? ''} onChange={(e) => actualizarCampo('rl_ciudad_expedicion', e.target.value)} />
+            </Campo>
+            <Campo label="Correo electrónico del representante legal">
+              <input type="email" style={estilos.input} value={form.rl_correo ?? ''} onChange={(e) => actualizarCampo('rl_correo', e.target.value)} />
+            </Campo>
+            <Campo label="Fecha de nombramiento o posesión">
+              <input type="date" style={estilos.input} value={form.rl_fecha_nombramiento ?? ''} onChange={(e) => actualizarCampo('rl_fecha_nombramiento', e.target.value)} />
+            </Campo>
+            <Campo label="Suplente del representante legal (nombre y documento)">
+              <input style={estilos.input} value={form.rl_suplente ?? ''} onChange={(e) => actualizarCampo('rl_suplente', e.target.value)} />
             </Campo>
           </div>
+
+          <h3 style={estilos.tituloSubseccion}>Facultades para contratar</h3>
+          <div style={estilos.filaPregunta}>
+            <span style={estilos.textoPregunta}>¿Tiene límite de monto para contratar?</span>
+            <div style={estilos.opcionesSiNo}>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="rl_tiene_limite_monto" checked={form.rl_tiene_limite_monto === true} onChange={() => actualizarCampo('rl_tiene_limite_monto', true)} /> Sí
+              </label>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="rl_tiene_limite_monto" checked={form.rl_tiene_limite_monto === false} onChange={() => actualizarCampo('rl_tiene_limite_monto', false)} /> No
+              </label>
+            </div>
+          </div>
+          <div style={estilos.grid2}>
+            <Campo label="Monto máximo que puede firmar sin autorización (COP) — si tiene límite">
+              <input type="number" step="any" style={estilos.input} value={form.rl_monto_maximo ?? ''} onChange={(e) => actualizarCampo('rl_monto_maximo', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
+            <Campo label="Órgano que autoriza montos superiores (junta, asamblea) — si tiene límite">
+              <input style={estilos.input} value={form.rl_organo_autoriza ?? ''} onChange={(e) => actualizarCampo('rl_organo_autoriza', e.target.value)} />
+            </Campo>
+          </div>
+          <div style={estilos.filaPregunta}>
+            <span style={estilos.textoPregunta}>¿Sus facultades incluyen presentar ofertas y firmar contratos con entidades públicas?</span>
+            <div style={estilos.opcionesSiNo}>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="rl_facultades_ofertar" checked={form.rl_facultades_ofertar === true} onChange={() => actualizarCampo('rl_facultades_ofertar', true)} /> Sí
+              </label>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="rl_facultades_ofertar" checked={form.rl_facultades_ofertar === false} onChange={() => actualizarCampo('rl_facultades_ofertar', false)} /> No
+              </label>
+            </div>
+          </div>
+          <Campo label="Restricciones adicionales en los estatutos (descripción)">
+            <textarea
+              style={{ ...estilos.input, minHeight: 70, resize: 'vertical', fontFamily: 'inherit' }}
+              value={form.rl_restricciones_estatutarias ?? ''}
+              onChange={(e) => actualizarCampo('rl_restricciones_estatutarias', e.target.value)}
+            />
+          </Campo>
         </section>
 
         <section style={estilos.seccion}>
@@ -231,27 +334,107 @@ export default function MiEmpresaPage() {
         </section>
 
         <section style={estilos.seccion}>
-          <h2 style={estilos.tituloSeccion}>Capacidad jurídica</h2>
-          <p style={estilos.ayuda}>Respóndelas una sola vez. Con todas en "Sí", el checklist jurídico de cualquier proceso nuevo se da por cumplido automáticamente.</p>
-          {PREGUNTAS_JURIDICAS.map((p) => (
+          <h2 style={estilos.tituloSeccion}>Cumplimiento y antecedentes</h2>
+          <p style={estilos.ayuda}>Respóndelas una sola vez. Con esto al día, el checklist de cumplimiento de cualquier proceso nuevo se da por resuelto automáticamente.</p>
+
+          <h3 style={estilos.tituloSubseccion}>Contabilidad y revisoría fiscal</h3>
+          <div style={estilos.filaPregunta}>
+            <span style={estilos.textoPregunta}>¿Tiene revisor fiscal?</span>
+            <div style={estilos.opcionesSiNo}>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_tiene_revisor_fiscal" checked={form.cump_tiene_revisor_fiscal === true} onChange={() => actualizarCampo('cump_tiene_revisor_fiscal', true)} /> Sí
+              </label>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_tiene_revisor_fiscal" checked={form.cump_tiene_revisor_fiscal === false} onChange={() => actualizarCampo('cump_tiene_revisor_fiscal', false)} /> No
+              </label>
+            </div>
+          </div>
+          <div style={estilos.grid2}>
+            <Campo label="Nombre y T.P. del revisor fiscal (si aplica)">
+              <input style={estilos.input} placeholder="Juan Pérez – T.P. 12345-T" value={form.cump_revisor_fiscal_nombre_tp ?? ''} onChange={(e) => actualizarCampo('cump_revisor_fiscal_nombre_tp', e.target.value)} />
+            </Campo>
+            <Campo label="Nombre y T.P. del contador público">
+              <input style={estilos.input} placeholder="Laura Díaz – T.P. 67890-T" value={form.cump_contador_nombre_tp ?? ''} onChange={(e) => actualizarCampo('cump_contador_nombre_tp', e.target.value)} />
+            </Campo>
+          </div>
+
+          <h3 style={estilos.tituloSubseccion}>Seguridad social y parafiscales</h3>
+          <div style={estilos.grid2}>
+            <Campo label="Fecha del último certificado de pago de seguridad social y parafiscales">
+              <input type="date" style={estilos.input} value={form.cump_fecha_pago_seguridad_social ?? ''} onChange={(e) => actualizarCampo('cump_fecha_pago_seguridad_social', e.target.value)} />
+            </Campo>
+          </div>
+          <div style={estilos.filaPregunta}>
+            <span style={estilos.textoPregunta}>¿Está al día en aportes (sin deudas ni mora)?</span>
+            <div style={estilos.opcionesSiNo}>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_aportes_al_dia" checked={form.cump_aportes_al_dia === true} onChange={() => actualizarCampo('cump_aportes_al_dia', true)} /> Sí
+              </label>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_aportes_al_dia" checked={form.cump_aportes_al_dia === false} onChange={() => actualizarCampo('cump_aportes_al_dia', false)} /> No
+              </label>
+            </div>
+          </div>
+
+          <h3 style={estilos.tituloSubseccion}>Antecedentes</h3>
+          <p style={estilos.ayuda}>Consulta cada uno en la entidad correspondiente y selecciona el resultado.</p>
+          <div style={estilos.grid2}>
+            {PREGUNTAS_ANTECEDENTES.map((p) => (
+              <Campo key={p.key} label={p.texto}>
+                <select style={estilos.input} value={form[p.key] ?? ''} onChange={(e) => actualizarCampo(p.key, e.target.value)}>
+                  {OPCIONES_ANTECEDENTES.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </Campo>
+            ))}
+          </div>
+
+          <h3 style={estilos.tituloSubseccion}>Sanciones y contingencias</h3>
+          <div style={estilos.filaPregunta}>
+            <span style={estilos.textoPregunta}>¿Ha tenido multas, sanciones, caducidades o incumplimientos con entidades estatales en los últimos 5 años?</span>
+            <div style={estilos.opcionesSiNo}>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_tiene_sanciones_5_anios" checked={form.cump_tiene_sanciones_5_anios === true} onChange={() => actualizarCampo('cump_tiene_sanciones_5_anios', true)} /> Sí
+              </label>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_tiene_sanciones_5_anios" checked={form.cump_tiene_sanciones_5_anios === false} onChange={() => actualizarCampo('cump_tiene_sanciones_5_anios', false)} /> No
+              </label>
+            </div>
+          </div>
+          <Campo label="Detalle de multas, sanciones o incumplimientos (entidad, fecha, valor, estado) — si respondió Sí arriba">
+            <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_sanciones ?? ''} onChange={(e) => actualizarCampo('cump_detalle_sanciones', e.target.value)} />
+          </Campo>
+          <div style={estilos.filaPregunta}>
+            <span style={estilos.textoPregunta}>¿Tiene procesos judiciales, arbitrales o embargos relevantes en su contra?</span>
+            <div style={estilos.opcionesSiNo}>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_tiene_procesos_judiciales" checked={form.cump_tiene_procesos_judiciales === true} onChange={() => actualizarCampo('cump_tiene_procesos_judiciales', true)} /> Sí
+              </label>
+              <label style={estilos.opcionSiNo}>
+                <input type="radio" name="cump_tiene_procesos_judiciales" checked={form.cump_tiene_procesos_judiciales === false} onChange={() => actualizarCampo('cump_tiene_procesos_judiciales', false)} /> No
+              </label>
+            </div>
+          </div>
+          <Campo label="Detalle de esos procesos (cuantía, estado) — si respondió Sí arriba">
+            <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={form.cump_detalle_procesos_judiciales ?? ''} onChange={(e) => actualizarCampo('cump_detalle_procesos_judiciales', e.target.value)} />
+          </Campo>
+
+          <h3 style={estilos.tituloSubseccion}>Sistemas de gestión y contratación electrónica</h3>
+          <div style={estilos.grid2}>
+            <Campo label="Puntaje de autoevaluación SG-SST (Resolución 0312 de 2019) — %">
+              <input type="number" step="any" style={estilos.input} value={form.cump_puntaje_sgsst ?? ''} onChange={(e) => actualizarCampo('cump_puntaje_sgsst', e.target.value === '' ? '' : Number(e.target.value))} />
+            </Campo>
+          </div>
+          {PREGUNTAS_CUMPLIMIENTO_SINO.filter((p) =>
+            ['cump_politica_proteccion_datos', 'cump_programa_etica_sarlaft', 'cump_secop_ii_activo'].includes(p.key)
+          ).map((p) => (
             <div key={p.key} style={estilos.filaPregunta}>
               <span style={estilos.textoPregunta}>{p.texto}</span>
               <div style={estilos.opcionesSiNo}>
                 <label style={estilos.opcionSiNo}>
-                  <input
-                    type="radio"
-                    name={p.key}
-                    checked={form[p.key] === true}
-                    onChange={() => actualizarCampo(p.key, true)}
-                  /> Sí
+                  <input type="radio" name={p.key} checked={form[p.key] === true} onChange={() => actualizarCampo(p.key, true)} /> Sí
                 </label>
                 <label style={estilos.opcionSiNo}>
-                  <input
-                    type="radio"
-                    name={p.key}
-                    checked={form[p.key] === false}
-                    onChange={() => actualizarCampo(p.key, false)}
-                  /> No
+                  <input type="radio" name={p.key} checked={form[p.key] === false} onChange={() => actualizarCampo(p.key, false)} /> No
                 </label>
               </div>
             </div>
@@ -331,6 +514,7 @@ const estilos = {
   formulario: { display: 'flex', flexDirection: 'column', gap: 32 },
   seccion: { border: '1px solid #E3E7EC', borderRadius: 12, padding: 24 },
   tituloSeccion: { fontSize: 18, fontWeight: 600, marginBottom: 12 },
+  tituloSubseccion: { fontSize: 15, fontWeight: 600, marginTop: 20, marginBottom: 8, color: '#374151' },
   ayuda: { color: '#5B6572', fontSize: 14, marginBottom: 16 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
   campo: { display: 'flex', flexDirection: 'column', gap: 6, marginBottom: 12 },
