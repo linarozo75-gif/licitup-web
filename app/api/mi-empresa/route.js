@@ -81,6 +81,23 @@ export async function POST(request) {
       cump_programa_etica_sarlaft = null,
       cump_secop_ii_activo = null,
 
+      // Módulo 5 — Financiero: Registro Único de Proponentes (RUP)
+      fin_estado_rup = null,
+      fin_fecha_renovacion_rup = null,
+      fin_fecha_corte_informacion = null,
+      fin_k_residual = null,
+
+      // Módulo 5 — Financiero: datos base en COP
+      fin_activo_corriente = null,
+      fin_activo_total = null,
+      fin_pasivo_corriente = null,
+      fin_pasivo_total = null,
+      fin_patrimonio = null,
+      fin_ingresos_operacionales = null,
+      fin_utilidad_operacional = null,
+      fin_utilidad_neta = null,
+      fin_gastos_intereses = null,
+
       // Indicadores financieros
       fin_regimen = null,
       fin_indice_liquidez = null,
@@ -89,6 +106,12 @@ export async function POST(request) {
       fin_capital_trabajo = null,
       fin_rentabilidad_patrimonio = null,
       fin_rentabilidad_activo = null,
+
+      // Módulo 5 — Financiero: documentos adicionales al RUP
+      fin_doc_estados_financieros_notas = null,
+      fin_doc_dictamen_revisor_fiscal = null,
+      fin_doc_declaracion_renta = null,
+      fin_doc_certificacion_bancaria = null,
 
       // Portafolio
       unspsc_codigos = null,
@@ -116,9 +139,15 @@ export async function POST(request) {
         cump_tiene_procesos_judiciales, cump_detalle_procesos_judiciales,
         cump_puntaje_sgsst, cump_politica_proteccion_datos,
         cump_programa_etica_sarlaft, cump_secop_ii_activo,
+        fin_estado_rup, fin_fecha_renovacion_rup, fin_fecha_corte_informacion, fin_k_residual,
+        fin_activo_corriente, fin_activo_total, fin_pasivo_corriente, fin_pasivo_total,
+        fin_patrimonio, fin_ingresos_operacionales, fin_utilidad_operacional,
+        fin_utilidad_neta, fin_gastos_intereses,
         fin_regimen, fin_indice_liquidez, fin_indice_endeudamiento,
         fin_razon_cobertura_intereses, fin_capital_trabajo,
         fin_rentabilidad_patrimonio, fin_rentabilidad_activo,
+        fin_doc_estados_financieros_notas, fin_doc_dictamen_revisor_fiscal,
+        fin_doc_declaracion_renta, fin_doc_certificacion_bancaria,
         unspsc_codigos, descripcion_servicios, updated_at
       ) VALUES (
         1,
@@ -140,9 +169,15 @@ export async function POST(request) {
         ${cump_tiene_procesos_judiciales}, ${cump_detalle_procesos_judiciales},
         ${cump_puntaje_sgsst}, ${cump_politica_proteccion_datos},
         ${cump_programa_etica_sarlaft}, ${cump_secop_ii_activo},
+        ${fin_estado_rup}, ${fin_fecha_renovacion_rup}, ${fin_fecha_corte_informacion}, ${fin_k_residual},
+        ${fin_activo_corriente}, ${fin_activo_total}, ${fin_pasivo_corriente}, ${fin_pasivo_total},
+        ${fin_patrimonio}, ${fin_ingresos_operacionales}, ${fin_utilidad_operacional},
+        ${fin_utilidad_neta}, ${fin_gastos_intereses},
         ${fin_regimen}, ${fin_indice_liquidez}, ${fin_indice_endeudamiento},
         ${fin_razon_cobertura_intereses}, ${fin_capital_trabajo},
         ${fin_rentabilidad_patrimonio}, ${fin_rentabilidad_activo},
+        ${fin_doc_estados_financieros_notas}, ${fin_doc_dictamen_revisor_fiscal},
+        ${fin_doc_declaracion_renta}, ${fin_doc_certificacion_bancaria},
         ${unspsc_codigos}, ${descripcion_servicios}, now()
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -196,6 +231,19 @@ export async function POST(request) {
         cump_politica_proteccion_datos = EXCLUDED.cump_politica_proteccion_datos,
         cump_programa_etica_sarlaft = EXCLUDED.cump_programa_etica_sarlaft,
         cump_secop_ii_activo = EXCLUDED.cump_secop_ii_activo,
+        fin_estado_rup = EXCLUDED.fin_estado_rup,
+        fin_fecha_renovacion_rup = EXCLUDED.fin_fecha_renovacion_rup,
+        fin_fecha_corte_informacion = EXCLUDED.fin_fecha_corte_informacion,
+        fin_k_residual = EXCLUDED.fin_k_residual,
+        fin_activo_corriente = EXCLUDED.fin_activo_corriente,
+        fin_activo_total = EXCLUDED.fin_activo_total,
+        fin_pasivo_corriente = EXCLUDED.fin_pasivo_corriente,
+        fin_pasivo_total = EXCLUDED.fin_pasivo_total,
+        fin_patrimonio = EXCLUDED.fin_patrimonio,
+        fin_ingresos_operacionales = EXCLUDED.fin_ingresos_operacionales,
+        fin_utilidad_operacional = EXCLUDED.fin_utilidad_operacional,
+        fin_utilidad_neta = EXCLUDED.fin_utilidad_neta,
+        fin_gastos_intereses = EXCLUDED.fin_gastos_intereses,
         fin_regimen = EXCLUDED.fin_regimen,
         fin_indice_liquidez = EXCLUDED.fin_indice_liquidez,
         fin_indice_endeudamiento = EXCLUDED.fin_indice_endeudamiento,
@@ -203,6 +251,10 @@ export async function POST(request) {
         fin_capital_trabajo = EXCLUDED.fin_capital_trabajo,
         fin_rentabilidad_patrimonio = EXCLUDED.fin_rentabilidad_patrimonio,
         fin_rentabilidad_activo = EXCLUDED.fin_rentabilidad_activo,
+        fin_doc_estados_financieros_notas = EXCLUDED.fin_doc_estados_financieros_notas,
+        fin_doc_dictamen_revisor_fiscal = EXCLUDED.fin_doc_dictamen_revisor_fiscal,
+        fin_doc_declaracion_renta = EXCLUDED.fin_doc_declaracion_renta,
+        fin_doc_certificacion_bancaria = EXCLUDED.fin_doc_certificacion_bancaria,
         unspsc_codigos = EXCLUDED.unspsc_codigos,
         descripcion_servicios = EXCLUDED.descripcion_servicios,
         updated_at = now()
