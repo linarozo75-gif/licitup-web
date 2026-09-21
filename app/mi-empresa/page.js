@@ -174,6 +174,163 @@ const DOCUMENTOS_FINANCIEROS_ADICIONALES = [
   { key: 'fin_doc_certificacion_bancaria', texto: 'Certificación bancaria' },
 ];
 
+// Módulo 3 (Accionistas): puede haber varios por empresa, así que tiene su propia tabla y su
+// propia API, pero vive dentro de esta misma página — no en una pestaña aparte.
+const TIPOS_DOCUMENTO = [
+  { value: '', label: 'Selecciona...' },
+  { value: 'cc', label: 'Cédula de ciudadanía (CC)' },
+  { value: 'ce', label: 'Cédula de extranjería (CE)' },
+  { value: 'nit', label: 'NIT' },
+  { value: 'pasaporte', label: 'Pasaporte' },
+  { value: 'otro', label: 'Otro' },
+];
+
+const ACCIONISTA_VACIO = {
+  id: null,
+  nombre_razon_social: '',
+  tipo_documento: '',
+  numero_documento: '',
+  porcentaje_participacion: '',
+  pais_domicilio: '',
+  beneficiario_final: null,
+  pep: null,
+  servidor_publico_pariente: null,
+  representante_legal_directivo: null,
+  observaciones: '',
+};
+
+// Columnas que espera el importador de accionistas, EN ESTE ORDEN — misma plantilla que se descarga.
+const COLUMNAS_IMPORTACION_ACCIONISTAS = [
+  { header: 'Nombre o razón social', key: 'nombre_razon_social', tipo: 'texto' },
+  { header: 'Tipo de documento (CC, CE, NIT, Pasaporte u Otro)', key: 'tipo_documento', tipo: 'tipo_documento' },
+  { header: 'Número de documento', key: 'numero_documento', tipo: 'texto' },
+  { header: '% de participación', key: 'porcentaje_participacion', tipo: 'numero' },
+  { header: 'País de domicilio', key: 'pais_domicilio', tipo: 'texto' },
+  { header: '¿Beneficiario final? (Si/No)', key: 'beneficiario_final', tipo: 'sino' },
+  { header: '¿Persona expuesta políticamente (PEP)? (Si/No)', key: 'pep', tipo: 'sino' },
+  { header: '¿Es servidor público o pariente de uno? (Si/No)', key: 'servidor_publico_pariente', tipo: 'sino' },
+  { header: '¿Es representante legal o directivo? (Si/No)', key: 'representante_legal_directivo', tipo: 'sino' },
+  { header: 'Observaciones', key: 'observaciones', tipo: 'texto' },
+];
+
+const FILA_EJEMPLO_ACCIONISTAS = ['María Gómez Pérez', 'CC', '52000000', '60', 'Colombia', 'Si', 'No', 'No', 'Si', ''];
+
+function normalizar(texto) {
+  return String(texto ?? '')
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '');
+}
+
+function convertirValor(valorCrudo, tipo) {
+  const valor = String(valorCrudo ?? '').trim();
+  if (valor === '') return null;
+  switch (tipo) {
+    case 'numero': {
+      const limpio = valor.replace(/[^\d.-]/g, '');
+      const n = Number(limpio);
+      return Number.isNaN(n) ? null : n;
+    }
+    case 'sino': {
+      const n = normalizar(valor);
+      if (n === 'si' || n === 'sí') return true;
+      if (n === 'no') return false;
+      return null;
+    }
+    case 'tipo_documento': {
+      const n = normalizar(valor);
+      if (['cc', 'ce', 'nit', 'pasaporte'].includes(n)) return n;
+      return 'otro';
+    }
+    default:
+      return valor;
+  }
+}
+
+function parsearCSV(texto) {
+  const filas = [];
+  let fila = [];
+  let campo = '';
+  let dentroComillas = false;
+  for (let i = 0; i < texto.length; i++) {
+    const c = texto[i];
+    if (dentroComillas) {
+      if (c === '"' && texto[i + 1] === '"') { campo += '"'; i++; }
+      else if (c === '"') { dentroComillas = false; }
+      else { campo += c; }
+    } else if (c === '"') {
+      dentroComillas = true;
+    } else if (c === ',') {
+      fila.push(campo); campo = '';
+    } else if (c === '\r') {
+      // se ignora, lo maneja el \n
+    } else if (c === '\n') {
+      fila.push(campo); filas.push(fila); fila = []; campo = '';
+    } else {
+      campo += c;
+    }
+  }
+  if (campo !== '' || fila.length > 0) { fila.push(campo); filas.push(fila); }
+  return filas.filter((f) => f.some((v) => v.trim() !== ''));
+}
+
+function cargarLectorExcel() {
+  return new Promise((resolve, reject) => {
+    if (window.XLSX) { resolve(window.XLSX); return; }
+    const script = document.createElement('script');
+    script.src = 'https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js';
+    script.onload = () => resolve(window.XLSX);
+    script.onerror = () => reject(new Error('No se pudo cargar el lector de Excel. Revisa tu conexión e intenta de nuevo.'));
+    document.body.appendChild(script);
+  });
+}
+
+async function leerFilasDelArchivo(archivo) {
+  const nombre = archivo.name.toLowerCase();
+  if (nombre.endsWith('.csv')) {
+    const texto = await archivo.text();
+    return parsearCSV(texto);
+  }
+  if (nombre.endsWith('.xlsx') || nombre.endsWith('.xls')) {
+    const XLSX = await cargarLectorExcel();
+    const buffer = await archivo.arrayBuffer();
+    const libro = XLSX.read(buffer, { type: 'array', cellDates: true });
+    const hoja = libro.Sheets[libro.SheetNames[0]];
+    const filasCrudas = XLSX.utils.sheet_to_json(hoja, { header: 1, raw: false });
+    return filasCrudas
+      .map((fila) => fila.map((v) => (v === undefined || v === null ? '' : String(v))))
+      .filter((f) => f.some((v) => v.trim() !== ''));
+  }
+  throw new Error('Formato no reconocido. Sube un archivo .csv, .xlsx o .xls.');
+}
+
+function descargarPlantillaAccionistasCSV() {
+  const encabezados = COLUMNAS_IMPORTACION_ACCIONISTAS.map((c) => c.header);
+  const filas = [encabezados, FILA_EJEMPLO_ACCIONISTAS];
+  const csv = filas
+    .map((fila) => fila.map((v) => `"${String(v ?? '').replace(/"/g, '""')}"`).join(','))
+    .join('\r\n');
+  const blob = new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'plantilla_accionistas_licitup.csv';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+async function descargarPlantillaAccionistasExcel() {
+  const XLSX = await cargarLectorExcel();
+  const encabezados = COLUMNAS_IMPORTACION_ACCIONISTAS.map((c) => c.header);
+  const datos = [encabezados, FILA_EJEMPLO_ACCIONISTAS];
+  const hoja = XLSX.utils.aoa_to_sheet(datos);
+  hoja['!cols'] = encabezados.map(() => ({ wch: 26 }));
+  const libro = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(libro, hoja, 'Accionistas');
+  XLSX.writeFile(libro, 'plantilla_accionistas_licitup.xlsx');
+}
+
 // Componente reutilizable para una pregunta Sí/No, con soporte para depender de otra pregunta
 function PreguntaSiNo({ texto, valor, onChange }) {
   return (
@@ -197,6 +354,14 @@ export default function MiEmpresaPage() {
   const [guardando, setGuardando] = useState(false);
   const [mensaje, setMensaje] = useState(null);
 
+  const [accionistas, setAccionistas] = useState([]);
+  const [cargandoAccionistas, setCargandoAccionistas] = useState(true);
+  const [draftAccionista, setDraftAccionista] = useState(null);
+  const [guardandoAccionista, setGuardandoAccionista] = useState(false);
+  const [mensajeAccionistas, setMensajeAccionistas] = useState(null);
+  const [importandoAccionistas, setImportandoAccionistas] = useState(false);
+  const [preparandoPlantillaAccionistas, setPreparandoPlantillaAccionistas] = useState(false);
+
   useEffect(() => {
     fetch('/api/mi-empresa')
       .then((r) => r.json())
@@ -215,6 +380,17 @@ export default function MiEmpresaPage() {
       .catch(() => setMensaje({ tipo: 'error', texto: 'No se pudo cargar el perfil guardado.' }))
       .finally(() => setCargando(false));
   }, []);
+
+  function cargarAccionistas() {
+    setCargandoAccionistas(true);
+    fetch('/api/mi-empresa/accionistas')
+      .then((r) => r.json())
+      .then((data) => setAccionistas(data.accionistas ?? []))
+      .catch(() => setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo cargar la lista de accionistas.' }))
+      .finally(() => setCargandoAccionistas(false));
+  }
+
+  useEffect(() => { cargarAccionistas(); }, []);
 
   function actualizarCampo(key, value) {
     setForm((prev) => ({ ...prev, [key]: value }));
@@ -244,6 +420,109 @@ export default function MiEmpresaPage() {
     }
   }
 
+  function abrirNuevoAccionista() {
+    setDraftAccionista({ ...ACCIONISTA_VACIO });
+    setMensajeAccionistas(null);
+  }
+
+  function abrirEditarAccionista(fila) {
+    setDraftAccionista({ ...fila });
+    setMensajeAccionistas(null);
+  }
+
+  function cancelarAccionista() {
+    setDraftAccionista(null);
+  }
+
+  function actualizarDraftAccionista(key, value) {
+    setDraftAccionista((prev) => ({ ...prev, [key]: value }));
+  }
+
+  async function guardarAccionista() {
+    setGuardandoAccionista(true);
+    setMensajeAccionistas(null);
+    try {
+      const payload = Object.fromEntries(
+        Object.entries(draftAccionista).map(([key, value]) => [key, value === '' ? null : value])
+      );
+      const res = await fetch('/api/mi-empresa/accionistas', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) throw new Error('save_failed');
+      setDraftAccionista(null);
+      cargarAccionistas();
+    } catch {
+      setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo guardar el accionista. Intenta de nuevo.' });
+    } finally {
+      setGuardandoAccionista(false);
+    }
+  }
+
+  async function eliminarAccionista(id) {
+    if (!confirm('¿Eliminar este accionista?')) return;
+    try {
+      const res = await fetch(`/api/mi-empresa/accionistas?id=${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('delete_failed');
+      cargarAccionistas();
+    } catch {
+      setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo eliminar. Intenta de nuevo.' });
+    }
+  }
+
+  async function manejarArchivoImportadoAccionistas(e) {
+    const archivo = e.target.files?.[0];
+    e.target.value = '';
+    if (!archivo) return;
+
+    setImportandoAccionistas(true);
+    setMensajeAccionistas(null);
+    try {
+      const filas = await leerFilasDelArchivo(archivo);
+      const filasDeDatos = filas.slice(1);
+
+      let exitosas = 0;
+      const filasConError = [];
+
+      for (let i = 0; i < filasDeDatos.length; i++) {
+        const fila = filasDeDatos[i];
+        const payload = {};
+        COLUMNAS_IMPORTACION_ACCIONISTAS.forEach((col, idx) => {
+          payload[col.key] = convertirValor(fila[idx], col.tipo);
+        });
+
+        try {
+          const res = await fetch('/api/mi-empresa/accionistas', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+          });
+          if (!res.ok) throw new Error('row_failed');
+          exitosas++;
+        } catch {
+          filasConError.push(i + 2);
+        }
+      }
+
+      cargarAccionistas();
+      if (filasConError.length === 0) {
+        setMensajeAccionistas({ tipo: 'ok', texto: `Se importaron ${exitosas} accionista(s) correctamente.` });
+      } else {
+        setMensajeAccionistas({
+          tipo: 'error',
+          texto: `Se importaron ${exitosas} accionista(s). Hubo un problema en la(s) fila(s): ${filasConError.join(', ')}.`,
+        });
+      }
+    } catch (error) {
+      setMensajeAccionistas({ tipo: 'error', texto: error?.message || 'No se pudo leer el archivo. Verifica que sea un CSV o Excel válido.' });
+    } finally {
+      setImportandoAccionistas(false);
+    }
+  }
+
+  const sumaParticipacionAccionistas = accionistas.reduce((acc, a) => acc + (Number(a.porcentaje_participacion) || 0), 0);
+
   if (cargando) {
     return <main style={estilos.pagina}><p>Cargando perfil…</p></main>;
   }
@@ -261,7 +540,14 @@ export default function MiEmpresaPage() {
         lo que falte simplemente no se podrá verificar todavía.
       </p>
 
-      <form onSubmit={guardar} style={estilos.formulario}>
+      <form
+        onSubmit={guardar}
+        onKeyDown={(e) => {
+          // Evita que Enter en cualquier campo (incluido el de Accionistas) dispare el envío del formulario.
+          if (e.key === 'Enter' && e.target.tagName !== 'TEXTAREA') e.preventDefault();
+        }}
+        style={estilos.formulario}
+      >
         <section style={estilos.seccion}>
           <h2 style={estilos.tituloSeccion}>Datos básicos</h2>
           <p style={estilos.ayuda}>Cópialos tal como aparecen en la Cámara de Comercio, el RUT y el RUP — las diferencias entre documentos generan observaciones de la entidad.</p>
@@ -365,6 +651,125 @@ export default function MiEmpresaPage() {
               onChange={(e) => actualizarCampo('rl_restricciones_estatutarias', e.target.value)}
             />
           </Campo>
+        </section>
+
+        <section style={estilos.seccion}>
+          <h2 style={estilos.tituloSeccion}>Accionistas</h2>
+          <p style={estilos.ayuda}>
+            Un registro por cada socio o accionista — se usa para verificar inhabilidades, conflictos de interés y
+            declaraciones de beneficiarios finales. Esta sección es opcional: puedes dejarla vacía o completarla
+            después, y no hace falta adjuntar ningún documento.
+          </p>
+
+          <h3 style={estilos.tituloSubseccion}>Cargar varios accionistas a la vez</h3>
+          <p style={estilos.ayuda}>
+            Si tienes varios socios, es más rápido descargar la plantilla, llenarla y subirla de una sola vez.
+            Puedes subirla en Excel (.xlsx) o en CSV, como prefieras.
+          </p>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', flexWrap: 'wrap', marginBottom: 16 }}>
+            <button
+              type="button"
+              style={estilos.botonSecundario}
+              disabled={preparandoPlantillaAccionistas}
+              onClick={async () => {
+                setPreparandoPlantillaAccionistas(true);
+                setMensajeAccionistas(null);
+                try {
+                  await descargarPlantillaAccionistasExcel();
+                } catch {
+                  setMensajeAccionistas({ tipo: 'error', texto: 'No se pudo preparar la plantilla en Excel. Intenta de nuevo o descárgala en CSV.' });
+                } finally {
+                  setPreparandoPlantillaAccionistas(false);
+                }
+              }}
+            >
+              {preparandoPlantillaAccionistas ? 'Preparando…' : 'Descargar plantilla (Excel)'}
+            </button>
+            <button type="button" style={estilos.botonSecundario} onClick={descargarPlantillaAccionistasCSV}>
+              Descargar plantilla (CSV)
+            </button>
+            <label style={{ ...estilos.boton, display: 'inline-block', cursor: 'pointer' }}>
+              {importandoAccionistas ? 'Importando…' : 'Subir Excel o CSV lleno'}
+              <input type="file" accept=".csv,.xlsx,.xls" onChange={manejarArchivoImportadoAccionistas} disabled={importandoAccionistas} style={{ display: 'none' }} />
+            </label>
+          </div>
+
+          {mensajeAccionistas && (
+            <p style={mensajeAccionistas.tipo === 'error' ? estilos.mensajeError : estilos.mensajeOk}>{mensajeAccionistas.texto}</p>
+          )}
+
+          <h3 style={estilos.tituloSubseccion}>Accionistas guardados</h3>
+          {accionistas.length > 0 && (
+            <p style={{ ...estilos.ayuda, fontWeight: 600, color: Math.round(sumaParticipacionAccionistas) === 100 ? '#0A7F5C' : '#C0362C' }}>
+              Suma de participación: {sumaParticipacionAccionistas.toFixed(2)}% {Math.round(sumaParticipacionAccionistas) === 100 ? '✓' : '(debería sumar 100%)'}
+            </p>
+          )}
+          {cargandoAccionistas ? (
+            <p style={estilos.ayuda}>Cargando…</p>
+          ) : accionistas.length === 0 && !draftAccionista ? (
+            <p style={estilos.ayuda}>Todavía no has agregado ningún accionista.</p>
+          ) : (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginBottom: 16 }}>
+              {accionistas.map((a) => (
+                <div key={a.id} style={estilos.filaTabla}>
+                  <div>
+                    <strong>{a.nombre_razon_social || 'Sin nombre'}</strong>
+                    {a.porcentaje_participacion != null ? ` — ${Number(a.porcentaje_participacion)}%` : ''}
+                    <div style={estilos.ayuda}>
+                      {a.tipo_documento ? `${TIPOS_DOCUMENTO.find((t) => t.value === a.tipo_documento)?.label ?? a.tipo_documento}` : ''}
+                      {a.numero_documento ? ` ${a.numero_documento}` : ''}
+                      {a.beneficiario_final ? ' · beneficiario final' : ''}
+                      {a.pep ? ' · PEP' : ''}
+                    </div>
+                  </div>
+                  <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                    <button type="button" style={estilos.botonSecundario} onClick={() => abrirEditarAccionista(a)}>Editar</button>
+                    <button type="button" style={estilos.botonSecundario} onClick={() => eliminarAccionista(a.id)}>Eliminar</button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {draftAccionista ? (
+            <div style={estilos.tarjetaFormulario}>
+              <div style={estilos.grid2}>
+                <Campo label="Nombre o razón social">
+                  <input style={estilos.input} value={draftAccionista.nombre_razon_social ?? ''} onChange={(e) => actualizarDraftAccionista('nombre_razon_social', e.target.value)} />
+                </Campo>
+                <Campo label="Tipo de documento">
+                  <select style={estilos.input} value={draftAccionista.tipo_documento ?? ''} onChange={(e) => actualizarDraftAccionista('tipo_documento', e.target.value)}>
+                    {TIPOS_DOCUMENTO.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                  </select>
+                </Campo>
+                <Campo label="Número de documento">
+                  <input style={estilos.input} value={draftAccionista.numero_documento ?? ''} onChange={(e) => actualizarDraftAccionista('numero_documento', e.target.value)} />
+                </Campo>
+                <Campo label="% de participación">
+                  <input type="number" step="any" style={estilos.input} value={draftAccionista.porcentaje_participacion ?? ''} onChange={(e) => actualizarDraftAccionista('porcentaje_participacion', e.target.value === '' ? '' : Number(e.target.value))} />
+                </Campo>
+                <Campo label="País de domicilio">
+                  <input style={estilos.input} value={draftAccionista.pais_domicilio ?? ''} onChange={(e) => actualizarDraftAccionista('pais_domicilio', e.target.value)} />
+                </Campo>
+              </div>
+
+              <PreguntaSiNo texto="¿Beneficiario final?" valor={draftAccionista.beneficiario_final} onChange={(v) => actualizarDraftAccionista('beneficiario_final', v)} />
+              <PreguntaSiNo texto="¿Persona expuesta políticamente (PEP)?" valor={draftAccionista.pep} onChange={(v) => actualizarDraftAccionista('pep', v)} />
+              <PreguntaSiNo texto="¿Es servidor público o pariente de uno?" valor={draftAccionista.servidor_publico_pariente} onChange={(v) => actualizarDraftAccionista('servidor_publico_pariente', v)} />
+              <PreguntaSiNo texto="¿Es representante legal o directivo?" valor={draftAccionista.representante_legal_directivo} onChange={(v) => actualizarDraftAccionista('representante_legal_directivo', v)} />
+
+              <Campo label="Observaciones">
+                <textarea style={{ ...estilos.input, minHeight: 60, resize: 'vertical', fontFamily: 'inherit' }} value={draftAccionista.observaciones ?? ''} onChange={(e) => actualizarDraftAccionista('observaciones', e.target.value)} />
+              </Campo>
+
+              <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end', marginTop: 16 }}>
+                <button type="button" style={estilos.botonSecundario} onClick={cancelarAccionista}>Cancelar</button>
+                <button type="button" disabled={guardandoAccionista} style={estilos.boton} onClick={guardarAccionista}>{guardandoAccionista ? 'Guardando…' : 'Guardar accionista'}</button>
+              </div>
+            </div>
+          ) : (
+            <button type="button" style={estilos.botonSecundario} onClick={abrirNuevoAccionista}>+ Agregar un accionista</button>
+          )}
         </section>
 
         <section style={estilos.seccion}>
@@ -653,8 +1058,11 @@ const estilos = {
   textoPregunta: { fontSize: 14, flex: 1 },
   opcionesSiNo: { display: 'flex', gap: 12, flexShrink: 0 },
   opcionSiNo: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 },
+  filaTabla: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', border: '1px solid #E3E7EC', borderRadius: 8 },
+  tarjetaFormulario: { border: '1px dashed #D0D5DD', borderRadius: 8, padding: 16 },
   pieFormulario: { display: 'flex', justifyContent: 'flex-end', alignItems: 'center', gap: 16 },
   boton: { background: '#12181F', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+  botonSecundario: { background: '#fff', color: '#12181F', border: '1px solid #D0D5DD', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' },
   mensajeOk: { color: '#0A7F5C', fontSize: 14 },
   mensajeError: { color: '#C0362C', fontSize: 14 },
 };
