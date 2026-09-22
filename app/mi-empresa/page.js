@@ -729,7 +729,7 @@ export default function MiEmpresaPage() {
 
         <nav style={estilos.sidebarNav}>
           <a href="/mi-empresa" style={{ ...estilos.sidebarLink, ...estilos.sidebarLinkActiva }}>Mi Empresa</a>
-          <span style={estilos.sidebarLinkDeshabilitada}>Identificar procesos<span style={estilos.sidebarBadge}>Pronto</span></span>
+          <a href="/radar" style={estilos.sidebarLink}>Identificar procesos</a>
           <span style={estilos.sidebarLinkDeshabilitada}>Evaluar proceso<span style={estilos.sidebarBadge}>Pronto</span></span>
           <span style={estilos.sidebarLinkDeshabilitada}>Construir oferta<span style={estilos.sidebarBadge}>Pronto</span></span>
           <span style={estilos.sidebarLinkDeshabilitada}>Gestionar contrato<span style={estilos.sidebarBadge}>Pronto</span></span>
