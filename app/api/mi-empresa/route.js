@@ -133,6 +133,16 @@ export async function POST(request) {
       cap_servicios_principales = null,
       cap_sectores_experiencia = null,
 
+      // Módulo 10 — Ponderables
+      pond_es_mipyme = null,
+      pond_mipyme_quien_certifica = null,
+      pond_mipyme_fecha_certificacion = null,
+      pond_origen_nacional = null,
+      pond_num_personas_discapacidad = null,
+      pond_fecha_vinculacion_discapacidad = null,
+      pond_certificado_mintrabajo_discapacidad = null,
+      pond_participacion_mujeres = null,
+
       // Portafolio
       unspsc_codigos = null,
       descripcion_servicios = null,
@@ -173,6 +183,9 @@ export async function POST(request) {
         cupos_corredor_seguros_seriedad, cupos_capacidad_polizas_cumplimiento,
         cap_infraestructura_herramientas, cap_sedes_ciudades, cap_esquema_soporte,
         cap_metodologias, cap_servicios_principales, cap_sectores_experiencia,
+        pond_es_mipyme, pond_mipyme_quien_certifica, pond_mipyme_fecha_certificacion,
+        pond_origen_nacional, pond_num_personas_discapacidad, pond_fecha_vinculacion_discapacidad,
+        pond_certificado_mintrabajo_discapacidad, pond_participacion_mujeres,
         unspsc_codigos, descripcion_servicios, updated_at
       ) VALUES (
         1,
@@ -208,6 +221,9 @@ export async function POST(request) {
         ${cupos_corredor_seguros_seriedad}, ${cupos_capacidad_polizas_cumplimiento},
         ${cap_infraestructura_herramientas}, ${cap_sedes_ciudades}, ${cap_esquema_soporte},
         ${cap_metodologias}, ${cap_servicios_principales}, ${cap_sectores_experiencia},
+        ${pond_es_mipyme}, ${pond_mipyme_quien_certifica}, ${pond_mipyme_fecha_certificacion},
+        ${pond_origen_nacional}, ${pond_num_personas_discapacidad}, ${pond_fecha_vinculacion_discapacidad},
+        ${pond_certificado_mintrabajo_discapacidad}, ${pond_participacion_mujeres},
         ${unspsc_codigos}, ${descripcion_servicios}, now()
       )
       ON CONFLICT (id) DO UPDATE SET
@@ -299,6 +315,14 @@ export async function POST(request) {
         cap_metodologias = EXCLUDED.cap_metodologias,
         cap_servicios_principales = EXCLUDED.cap_servicios_principales,
         cap_sectores_experiencia = EXCLUDED.cap_sectores_experiencia,
+        pond_es_mipyme = EXCLUDED.pond_es_mipyme,
+        pond_mipyme_quien_certifica = EXCLUDED.pond_mipyme_quien_certifica,
+        pond_mipyme_fecha_certificacion = EXCLUDED.pond_mipyme_fecha_certificacion,
+        pond_origen_nacional = EXCLUDED.pond_origen_nacional,
+        pond_num_personas_discapacidad = EXCLUDED.pond_num_personas_discapacidad,
+        pond_fecha_vinculacion_discapacidad = EXCLUDED.pond_fecha_vinculacion_discapacidad,
+        pond_certificado_mintrabajo_discapacidad = EXCLUDED.pond_certificado_mintrabajo_discapacidad,
+        pond_participacion_mujeres = EXCLUDED.pond_participacion_mujeres,
         unspsc_codigos = EXCLUDED.unspsc_codigos,
         descripcion_servicios = EXCLUDED.descripcion_servicios,
         updated_at = now()
