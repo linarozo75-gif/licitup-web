@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 const TIPOS_TERMINO = [
   { value: 'palabra_clave', label: 'Palabra clave' },
   { value: 'unspsc', label: 'Código UNSPSC' },
+  { value: 'entidad', label: 'Entidad específica' },
 ];
 
 function formatearValor(valor) {
@@ -153,6 +154,7 @@ export default function RadarPage() {
 
   const terminosUnspsc = terminos.filter((t) => t.tipo === 'unspsc');
   const terminosPalabras = terminos.filter((t) => t.tipo === 'palabra_clave');
+  const terminosEntidades = terminos.filter((t) => t.tipo === 'entidad');
 
   return (
     <div style={estilos.pagina}>
@@ -194,7 +196,11 @@ export default function RadarPage() {
           <p style={estilos.ayuda}>
             Agrega los códigos UNSPSC y/o las palabras clave que describen lo que ofreces. Si escribes una
             frase completa como palabra clave ("desarrollo de software"), el radar la parte en palabras
-            sueltas y busca cualquiera de ellas — no hace falta que coincida exacta.
+            sueltas y busca cualquiera de ellas — no hace falta que coincida exacta. Si lo que quieres es
+            seguirle la pista a una entidad puntual (por ejemplo un cliente con el que ya estás trabajando),
+            no la agregues como palabra clave — usa "Entidad específica": ese tipo busca el nombre completo
+            de la entidad tal cual, en vez de partirlo en palabras sueltas que podrían traer procesos de
+            entidades totalmente distintas.
           </p>
 
           <form
@@ -215,13 +221,23 @@ export default function RadarPage() {
             </label>
             <label style={{ ...estilos.campo, flex: 1, minWidth: 200 }}>
               <span style={estilos.etiqueta}>
-                {nuevoTerminoTipo === 'unspsc' ? 'Código UNSPSC' : 'Palabra o frase clave'}
+                {nuevoTerminoTipo === 'unspsc'
+                  ? 'Código UNSPSC'
+                  : nuevoTerminoTipo === 'entidad'
+                  ? 'Nombre de la entidad'
+                  : 'Palabra o frase clave'}
               </span>
               <input
                 type="text"
                 value={nuevoTerminoValor}
                 onChange={(e) => setNuevoTerminoValor(e.target.value)}
-                placeholder={nuevoTerminoTipo === 'unspsc' ? 'Ej: 81111500' : 'Ej: desarrollo de software'}
+                placeholder={
+                  nuevoTerminoTipo === 'unspsc'
+                    ? 'Ej: 81111500'
+                    : nuevoTerminoTipo === 'entidad'
+                    ? 'Ej: Secretaría Distrital de Planeación'
+                    : 'Ej: desarrollo de software'
+                }
                 style={estilos.input}
               />
             </label>
@@ -262,6 +278,21 @@ export default function RadarPage() {
                   <h3 style={estilos.tituloSubseccion}>Palabras clave</h3>
                   <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                     {terminosPalabras.map((t) => (
+                      <div key={t.id} style={estilos.filaTabla}>
+                        <span>{t.valor}</span>
+                        <button type="button" onClick={() => eliminarTermino(t.id)} style={estilos.botonSecundario}>
+                          Eliminar
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {terminosEntidades.length > 0 && (
+                <div>
+                  <h3 style={estilos.tituloSubseccion}>Entidades específicas</h3>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                    {terminosEntidades.map((t) => (
                       <div key={t.id} style={estilos.filaTabla}>
                         <span>{t.valor}</span>
                         <button type="button" onClick={() => eliminarTermino(t.id)} style={estilos.botonSecundario}>
