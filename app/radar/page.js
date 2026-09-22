@@ -140,8 +140,13 @@ export default function RadarPage() {
       if (filtroModalidad && r.modalidad !== filtroModalidad) return false;
       if (filtroDepartamento && r.departamento !== filtroDepartamento) return false;
       const valor = r.valor_base !== null && r.valor_base !== undefined ? Number(r.valor_base) : null;
-      if (filtroValorMin && (valor === null || valor < Number(filtroValorMin))) return false;
-      if (filtroValorMax && (valor === null || valor > Number(filtroValorMax))) return false;
+      // Un proceso sin valor registrado en SECOP nunca se oculta por los
+      // filtros de valor — se descarta la ausencia de dato con "no aplica el
+      // filtro", no con "no cumple el filtro".
+      if (valor !== null) {
+        if (filtroValorMin !== '' && valor < Number(filtroValorMin)) return false;
+        if (filtroValorMax !== '' && valor > Number(filtroValorMax)) return false;
+      }
       return true;
     });
   }, [resultados, filtroModalidad, filtroDepartamento, filtroValorMin, filtroValorMax]);
