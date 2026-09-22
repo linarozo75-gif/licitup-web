@@ -135,15 +135,29 @@ function esVigente(p, fechaLimiteTexto) {
   return true;
 }
 
-// SECOP devuelve el link del proceso a veces como texto plano y a veces como
-// un objeto { url: "..." }. Esta función siempre devuelve un texto plano (o
-// null si no hay link), para poder usarlo tanto para no repetir procesos como
-// para guardarlo en la base de datos.
+// SECOP devuelve el link del proceso de formas distintas según el proceso:
+// a veces como texto plano, a veces como un objeto { url: "..." }, y a veces
+// como un texto que en realidad contiene ese mismo objeto escrito como texto
+// (por ejemplo: '{"url":"https://..."}'). Esta función cubre los tres casos
+// y siempre devuelve el link como texto plano y usable (o null si no hay
+// forma de sacarlo), tanto para no repetir procesos como para guardarlo en
+// la base de datos.
 function obtenerUrlProceso(p) {
   const valor = p.urlproceso;
   if (!valor) return null;
-  if (typeof valor === 'string') return valor;
-  if (typeof valor === 'object' && valor.url) return valor.url;
+  if (typeof valor === 'object' && typeof valor.url === 'string') return valor.url;
+  if (typeof valor === 'string') {
+    const texto = valor.trim();
+    if (texto.startsWith('{')) {
+      try {
+        const objeto = JSON.parse(texto);
+        if (objeto && typeof objeto.url === 'string') return objeto.url;
+      } catch {
+        // No era un texto JSON válido — se sigue de largo y se usa tal cual.
+      }
+    }
+    return texto || null;
+  }
   return null;
 }
 
