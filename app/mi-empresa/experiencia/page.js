@@ -363,6 +363,7 @@ export default function ExperienciaPage() {
         <a href="/mi-empresa" style={estilos.tab}>Mi Empresa</a>
         <a href="/mi-empresa/experiencia" style={{ ...estilos.tab, ...estilos.tabActiva }}>Experiencia</a>
         <a href="/mi-empresa/talento" style={estilos.tab}>Talento</a>
+        <a href="/mi-empresa/financiero" style={estilos.tab}>Financiero</a>
       </nav>
 
       <h1 style={estilos.titulo}>Experiencia</h1>
