@@ -58,6 +58,30 @@ function construirCondicionesUnspsc(unspsc) {
   return partes;
 }
 
+// Deja el nombre de una entidad listo para compararlo tal cual lo guarda
+// SECOP en sus datos abiertos: todo en mayúsculas, sin tildes, y con las
+// comillas simples escapadas para que no rompan la consulta.
+function normalizarEntidad(texto) {
+  return texto
+    .normalize('NFD')
+    .replace(/[̀-ͯ]/g, '')
+    .toUpperCase()
+    .trim()
+    .replace(/'/g, "''");
+}
+
+// A diferencia de una palabra clave (que se parte en palabras sueltas y se
+// busca con el buscador de texto de SECOP), una entidad guardada como
+// "seguimiento a entidad específica" se busca EXACTAMENTE por el nombre de
+// la entidad, usando el campo "entidad" directamente — no el buscador de
+// texto libre. Esto evita el problema de que palabras comunes dentro del
+// nombre de una entidad (como "SECRETARIA" o "DISTRITAL") traigan cientos
+// de procesos de entidades completamente distintas.
+function construirCondicionEntidad(nombreEntidad) {
+  const normalizado = normalizarEntidad(nombreEntidad);
+  return `upper(entidad) like '%${normalizado}%'`;
+}
+
 // Agrupa las condiciones en lotes que no pasen de maxCaracteres, para que
 // cada consulta quede dentro de un largo de URL seguro.
 function agruparCondiciones(condiciones, maxCaracteres) {
@@ -175,12 +199,13 @@ async function ejecutarActualizacion() {
   const { rows: terminos } = await sql`SELECT tipo, valor FROM radar_terminos`;
   const unspsc = terminos.filter((t) => t.tipo === 'unspsc').map((t) => t.valor);
   const palabras = terminos.filter((t) => t.tipo === 'palabra_clave').map((t) => t.valor);
+  const entidades = terminos.filter((t) => t.tipo === 'entidad').map((t) => t.valor);
 
-  if (unspsc.length === 0 && palabras.length === 0) {
+  if (unspsc.length === 0 && palabras.length === 0 && entidades.length === 0) {
     return {
       ok: true,
       total: 0,
-      mensaje: 'No hay códigos UNSPSC ni palabras clave configurados todavía.',
+      mensaje: 'No hay códigos UNSPSC, palabras clave ni entidades configuradas todavía.',
     };
   }
 
@@ -200,6 +225,15 @@ async function ejecutarActualizacion() {
   const palabrasUnicas = extraerPalabrasUnicas(palabras);
   palabrasUnicas.forEach((palabra) => {
     consultasPendientes.push(consultarSecop(condicionVigente, palabra));
+  });
+
+  // Las entidades específicas NO pasan por el buscador de texto libre ($q):
+  // se filtran directamente por el campo "entidad" en el propio $where, para
+  // traer solo procesos de esa entidad exacta (ver construirCondicionEntidad
+  // más arriba).
+  entidades.forEach((nombreEntidad) => {
+    const where = `${construirCondicionEntidad(nombreEntidad)} AND ${condicionVigente}`;
+    consultasPendientes.push(consultarSecop(where, null));
   });
 
   // Todas las consultas salen al tiempo, no una detrás de otra.
