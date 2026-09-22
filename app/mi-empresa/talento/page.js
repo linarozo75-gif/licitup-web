@@ -428,6 +428,21 @@ export default function TalentoPage() {
 
   return (
     <main style={estilos.pagina}>
+      <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap');`}</style>
+
+      <header style={estilos.headerMarca}>
+        <svg width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path d="M8 56 A 48 48 0 0 1 56 8" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round" opacity="0.35"></path>
+          <path d="M20 56 A 36 36 0 0 1 56 20" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round" opacity="0.6"></path>
+          <path d="M32 56 A 24 24 0 0 1 56 32" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round"></path>
+          <circle cx="56" cy="56" r="6" fill="#D7FF3D"></circle>
+        </svg>
+        <div>
+          <div style={estilos.logoWordmark}>Licit<span style={{ color: '#D7FF3D' }}>Up</span></div>
+          <div style={estilos.logoTagline}>Inteligencia de licitaciones</div>
+        </div>
+      </header>
+
       <nav style={estilos.tabs}>
         <a href="/mi-empresa" style={estilos.tab}>Mi Empresa</a>
         <a href="/mi-empresa/experiencia" style={estilos.tab}>Experiencia</a>
@@ -671,14 +686,17 @@ export default function TalentoPage() {
 }
 
 const estilos = {
-  pagina: { maxWidth: 860, margin: '0 auto', padding: '48px 24px', fontFamily: 'system-ui, sans-serif', color: '#12181F' },
-  titulo: { fontSize: 28, fontWeight: 700, marginBottom: 4 },
+  pagina: { maxWidth: 860, margin: '0 auto', padding: '48px 24px', fontFamily: "'Manrope', system-ui, sans-serif", color: '#12181F', backgroundColor: '#F6F8FA', minHeight: '100vh' },
+  headerMarca: { display: 'flex', alignItems: 'center', gap: 14, backgroundColor: '#0E1420', borderRadius: 14, padding: '18px 22px', marginBottom: 28 },
+  logoWordmark: { fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", fontWeight: 800, fontSize: 22, color: '#EDF1F5', lineHeight: 1 },
+  logoTagline: { fontFamily: "'Manrope', system-ui, sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9AA6B4', marginTop: 4 },
+  titulo: { fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", fontSize: 28, fontWeight: 800, marginBottom: 4 },
   subtitulo: { color: '#5B6572', marginBottom: 32, lineHeight: 1.5 },
   tabs: { display: 'flex', gap: 8, marginBottom: 24, borderBottom: '1px solid #E3E7EC' },
   tab: { padding: '10px 16px', textDecoration: 'none', color: '#5B6572', fontSize: 14, fontWeight: 500, borderBottom: '2px solid transparent' },
-  tabActiva: { color: '#12181F', borderBottom: '2px solid #12181F' },
-  seccion: { border: '1px solid #E3E7EC', borderRadius: 12, padding: 24, marginBottom: 24 },
-  tituloSeccion: { fontSize: 18, fontWeight: 600, marginBottom: 12 },
+  tabActiva: { color: '#12181F', fontWeight: 700, borderBottom: '3px solid #D7FF3D' },
+  seccion: { border: '1px solid #E3E7EC', borderRadius: 12, padding: 24, marginBottom: 24, backgroundColor: '#FFFFFF' },
+  tituloSeccion: { fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", fontSize: 18, fontWeight: 700, marginBottom: 12 },
   tituloSubseccion: { fontSize: 15, fontWeight: 600, marginTop: 20, marginBottom: 8, color: '#374151' },
   ayuda: { color: '#5B6572', fontSize: 14, marginBottom: 16 },
   grid2: { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16 },
@@ -691,8 +709,8 @@ const estilos = {
   opcionSiNo: { display: 'flex', alignItems: 'center', gap: 4, fontSize: 14 },
   filaTabla: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px 12px', border: '1px solid #E3E7EC', borderRadius: 8 },
   tarjetaFormulario: { border: '1px dashed #D0D5DD', borderRadius: 8, padding: 16 },
-  boton: { background: '#12181F', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
+  boton: { background: '#0E1420', color: '#fff', border: 'none', borderRadius: 8, padding: '10px 20px', fontSize: 14, fontWeight: 600, cursor: 'pointer' },
   botonSecundario: { background: '#fff', color: '#12181F', border: '1px solid #D0D5DD', borderRadius: 8, padding: '8px 16px', fontSize: 13, cursor: 'pointer' },
   mensajeOk: { color: '#0A7F5C', fontSize: 14 },
-  mensajeError: { color: '#C0362C', fontSize: 14 },
+  mensajeError: { color: '#C43F2E', fontSize: 14, fontWeight: 600 },
 };
