@@ -135,6 +135,18 @@ function esVigente(p, fechaLimiteTexto) {
   return true;
 }
 
+// SECOP devuelve el link del proceso a veces como texto plano y a veces como
+// un objeto { url: "..." }. Esta función siempre devuelve un texto plano (o
+// null si no hay link), para poder usarlo tanto para no repetir procesos como
+// para guardarlo en la base de datos.
+function obtenerUrlProceso(p) {
+  const valor = p.urlproceso;
+  if (!valor) return null;
+  if (typeof valor === 'string') return valor;
+  if (typeof valor === 'object' && valor.url) return valor.url;
+  return null;
+}
+
 async function ejecutarActualizacion() {
   const { rows: terminos } = await sql`SELECT tipo, valor FROM radar_terminos`;
   const unspsc = terminos.filter((t) => t.tipo === 'unspsc').map((t) => t.valor);
@@ -177,7 +189,7 @@ async function ejecutarActualizacion() {
   tandas.forEach((procesos) => {
     procesos.forEach((p) => {
       if (!esVigente(p, fechaLimiteTexto)) return;
-      const llave = p.urlproceso || JSON.stringify(p);
+      const llave = obtenerUrlProceso(p) || JSON.stringify(p);
       procesosPorLlave[llave] = p;
     });
   });
@@ -185,35 +197,34 @@ async function ejecutarActualizacion() {
 
   await sql`DELETE FROM radar_resultados`;
 
-  if (listaFinal.length > 0) {
-    const columnas = [
-      'url_proceso', 'entidad', 'departamento', 'ciudad', 'objeto',
-      'modalidad', 'categoria_unspsc', 'valor_base', 'estado', 'fecha_publicacion',
-    ];
-    const marcadores = [];
-    const parametros = [];
-    listaFinal.forEach((p, i) => {
-      const base = i * columnas.length;
-      marcadores.push(`(${columnas.map((_, j) => `$${base + j + 1}`).join(', ')})`);
-      const valorBase = p.precio_base ? Number(p.precio_base) : null;
-      parametros.push(
-        p.urlproceso || null,
-        p.entidad || null,
-        p.departamento_entidad || null,
-        p.ciudad_entidad || null,
-        p.nombre_del_procedimiento || p['descripci_n_del_procedimiento'] || null,
-        p.modalidad_de_contratacion || null,
-        p.codigo_principal_de_categoria || null,
-        Number.isFinite(valorBase) ? valorBase : null,
-        p.estado_del_procedimiento || null,
-        p.fecha_de_publicacion_del ? p.fecha_de_publicacion_del.substring(0, 10) : null
-      );
-    });
+  // Se inserta proceso por proceso, con la misma forma de consulta (sql`...`)
+  // que se usa en el resto de LicitUp — en vez de armar un solo INSERT gigante
+  // a mano, que es más difícil de verificar que funciona bien.
+  for (const p of listaFinal) {
+    const urlProceso = obtenerUrlProceso(p);
+    const valorBase = p.precio_base ? Number(p.precio_base) : null;
+    const objeto = p.nombre_del_procedimiento || p['descripci_n_del_procedimiento'] || null;
+    const fechaPublicacion = p.fecha_de_publicacion_del
+      ? p.fecha_de_publicacion_del.substring(0, 10)
+      : null;
 
-    await sql.query(
-      `INSERT INTO radar_resultados (${columnas.join(', ')}) VALUES ${marcadores.join(', ')}`,
-      parametros
-    );
+    await sql`
+      INSERT INTO radar_resultados (
+        url_proceso, entidad, departamento, ciudad, objeto,
+        modalidad, categoria_unspsc, valor_base, estado, fecha_publicacion
+      ) VALUES (
+        ${urlProceso},
+        ${p.entidad || null},
+        ${p.departamento_entidad || null},
+        ${p.ciudad_entidad || null},
+        ${objeto},
+        ${p.modalidad_de_contratacion || null},
+        ${p.codigo_principal_de_categoria || null},
+        ${Number.isFinite(valorBase) ? valorBase : null},
+        ${p.estado_del_procedimiento || null},
+        ${fechaPublicacion}
+      )
+    `;
   }
 
   return { ok: true, total: listaFinal.length };
