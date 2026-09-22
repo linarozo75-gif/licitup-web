@@ -118,9 +118,19 @@ function calcularFechaLimiteTexto() {
   return fechaLimite.toISOString().slice(0, 10);
 }
 
+// OJO: aquí "=" va SIN espacios a los lados ("campo='valor'", no
+// "campo = 'valor'") a propósito. Se comprobó en vivo contra la API de SECOP
+// que, cuando esta condición se escribe con espacios alrededor del "=" y se
+// combina con dos condiciones más unidas por AND, SECOP deja de aplicar el
+// filtro por completo y devuelve prácticamente toda la base de datos (se
+// comprobó pidiendo el conteo de resultados: con espacios devolvía más de 9
+// millones de procesos — casi el total de la base — y sin espacios devolvía
+// el número real y pequeño de procesos que de verdad están abiertos). No es
+// un comportamiento documentado, es una rareza confirmada del portal de
+// datos abiertos — pero evitar los espacios alrededor de "=" lo soluciona.
 function condicionBaseVigente(fechaLimiteTexto) {
   return (
-    `estado_del_procedimiento = 'Abierto' AND adjudicado = 'No' ` +
+    `estado_del_procedimiento='Abierto' AND adjudicado='No' ` +
     `AND fecha_de_publicacion_del >= '${fechaLimiteTexto}'`
   );
 }
