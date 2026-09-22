@@ -101,6 +101,40 @@ async function consultarSecop(where, textoLibre) {
   }
 }
 
+// El campo "estado_del_procedimiento" de SECOP no es confiable por sí solo:
+// muchos procesos viejos (algunos ya adjudicados hace años) se quedan
+// marcados como "Abierto" y nunca se corrigen en los datos abiertos. Además,
+// se comprobó que cuando la consulta combina "$where" con el buscador de
+// texto ("$q", usado para las palabras clave), SECOP a veces IGNORA la
+// condición de estado y devuelve procesos en cualquier estado. Por eso el
+// filtro de vigencia no se deja solo en manos del "$where" que se manda a
+// SECOP — se vuelve a comprobar aquí mismo, sobre cada proceso que llega,
+// antes de guardarlo.
+const DIAS_RECIENCIA = 180;
+
+function calcularFechaLimiteTexto() {
+  const fechaLimite = new Date();
+  fechaLimite.setDate(fechaLimite.getDate() - DIAS_RECIENCIA);
+  return fechaLimite.toISOString().slice(0, 10);
+}
+
+function condicionBaseVigente(fechaLimiteTexto) {
+  return (
+    `estado_del_procedimiento = 'Abierto' AND adjudicado = 'No' ` +
+    `AND fecha_de_publicacion_del >= '${fechaLimiteTexto}'`
+  );
+}
+
+// Comprobación definitiva de que un proceso sigue vigente — no depende de
+// que SECOP haya aplicado bien el filtro que se le mandó.
+function esVigente(p, fechaLimiteTexto) {
+  if (p.estado_del_procedimiento !== 'Abierto') return false;
+  if (p.adjudicado !== 'No') return false;
+  const fechaPublicacion = p.fecha_de_publicacion_del ? p.fecha_de_publicacion_del.slice(0, 10) : null;
+  if (!fechaPublicacion || fechaPublicacion < fechaLimiteTexto) return false;
+  return true;
+}
+
 async function ejecutarActualizacion() {
   const { rows: terminos } = await sql`SELECT tipo, valor FROM radar_terminos`;
   const unspsc = terminos.filter((t) => t.tipo === 'unspsc').map((t) => t.valor);
@@ -114,30 +148,35 @@ async function ejecutarActualizacion() {
     };
   }
 
+  const fechaLimiteTexto = calcularFechaLimiteTexto();
+  const condicionVigente = condicionBaseVigente(fechaLimiteTexto);
   const consultasPendientes = [];
 
   if (unspsc.length > 0) {
     const condiciones = construirCondicionesUnspsc(unspsc);
     const lotes = agruparCondiciones(condiciones, 600);
     lotes.forEach((lote) => {
-      const where = `(${lote.join(' OR ')}) AND estado_del_procedimiento = 'Abierto'`;
+      const where = `(${lote.join(' OR ')}) AND ${condicionVigente}`;
       consultasPendientes.push(consultarSecop(where, null));
     });
   }
 
   const palabrasUnicas = extraerPalabrasUnicas(palabras);
   palabrasUnicas.forEach((palabra) => {
-    consultasPendientes.push(consultarSecop("estado_del_procedimiento = 'Abierto'", palabra));
+    consultasPendientes.push(consultarSecop(condicionVigente, palabra));
   });
 
   // Todas las consultas salen al tiempo, no una detrás de otra.
   const tandas = await Promise.all(consultasPendientes);
 
   // Se descartan duplicados usando el link del proceso como llave, igual que
-  // en el script original.
+  // en el script original, y se vuelve a comprobar la vigencia de cada
+  // proceso uno por uno (ver esVigente más arriba) en vez de confiar en que
+  // SECOP haya aplicado bien el filtro que se le mandó.
   const procesosPorLlave = {};
   tandas.forEach((procesos) => {
     procesos.forEach((p) => {
+      if (!esVigente(p, fechaLimiteTexto)) return;
       const llave = p.urlproceso || JSON.stringify(p);
       procesosPorLlave[llave] = p;
     });
