@@ -708,26 +708,35 @@ export default function MiEmpresaPage() {
   }
 
   if (cargando) {
-    return <main style={estilos.pagina}><p>Cargando perfil…</p></main>;
+    return <div style={estilos.pagina}><p style={{ padding: 24 }}>Cargando perfil…</p></div>;
   }
 
   return (
-    <main style={estilos.pagina}>
+    <div style={estilos.pagina}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Manrope:wght@400;500;600;700&display=swap');`}</style>
 
-      <header style={estilos.headerMarca}>
-        <svg width="32" height="32" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <path d="M8 56 A 48 48 0 0 1 56 8" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round" opacity="0.35"></path>
-          <path d="M20 56 A 36 36 0 0 1 56 20" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round" opacity="0.6"></path>
-          <path d="M32 56 A 24 24 0 0 1 56 32" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round"></path>
-          <circle cx="56" cy="56" r="6" fill="#D7FF3D"></circle>
-        </svg>
-        <div>
+      <aside style={estilos.sidebar}>
+        <div style={estilos.sidebarLogoWrap}>
+          <svg width="30" height="30" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M8 56 A 48 48 0 0 1 56 8" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round" opacity="0.35"></path>
+            <path d="M20 56 A 36 36 0 0 1 56 20" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round" opacity="0.6"></path>
+            <path d="M32 56 A 24 24 0 0 1 56 32" stroke="#D7FF3D" strokeWidth="3" strokeLinecap="round"></path>
+            <circle cx="56" cy="56" r="6" fill="#D7FF3D"></circle>
+          </svg>
           <div style={estilos.logoWordmark}>Licit<span style={{ color: '#D7FF3D' }}>Up</span></div>
           <div style={estilos.logoTagline}>Inteligencia de licitaciones</div>
         </div>
-      </header>
 
+        <nav style={estilos.sidebarNav}>
+          <a href="/mi-empresa" style={{ ...estilos.sidebarLink, ...estilos.sidebarLinkActiva }}>Mi Empresa</a>
+          <span style={estilos.sidebarLinkDeshabilitada}>Identificar procesos<span style={estilos.sidebarBadge}>Pronto</span></span>
+          <span style={estilos.sidebarLinkDeshabilitada}>Evaluar proceso<span style={estilos.sidebarBadge}>Pronto</span></span>
+          <span style={estilos.sidebarLinkDeshabilitada}>Construir oferta<span style={estilos.sidebarBadge}>Pronto</span></span>
+          <span style={estilos.sidebarLinkDeshabilitada}>Gestionar contrato<span style={estilos.sidebarBadge}>Pronto</span></span>
+        </nav>
+      </aside>
+
+      <main style={estilos.contenido}>
       <nav style={estilos.tabs}>
         <a href="/mi-empresa" style={{ ...estilos.tab, ...estilos.tabActiva }}>Mi Empresa</a>
         <a href="/mi-empresa/experiencia" style={estilos.tab}>Experiencia</a>
@@ -1324,7 +1333,8 @@ export default function MiEmpresaPage() {
           </button>
         </div>
       </form>
-    </main>
+      </main>
+    </div>
   );
 }
 
@@ -1338,8 +1348,15 @@ function Campo({ label, children }) {
 }
 
 const estilos = {
-  pagina: { maxWidth: 860, margin: '0 auto', padding: '48px 24px', fontFamily: "'Manrope', system-ui, sans-serif", color: '#12181F', backgroundColor: '#F6F8FA', minHeight: '100vh' },
-  headerMarca: { display: 'flex', alignItems: 'center', gap: 14, backgroundColor: '#0E1420', borderRadius: 14, padding: '18px 22px', marginBottom: 28 },
+  pagina: { display: 'flex', alignItems: 'flex-start', minHeight: '100vh', backgroundColor: '#F6F8FA', fontFamily: "'Manrope', system-ui, sans-serif", color: '#12181F' },
+  sidebar: { width: 240, flexShrink: 0, backgroundColor: '#0E1420', color: '#EDF1F5', padding: '28px 20px', display: 'flex', flexDirection: 'column', gap: 28, position: 'sticky', top: 0, height: '100vh', boxSizing: 'border-box', overflowY: 'auto' },
+  sidebarLogoWrap: { display: 'flex', flexDirection: 'column', gap: 6 },
+  sidebarNav: { display: 'flex', flexDirection: 'column', gap: 4 },
+  sidebarLink: { display: 'block', padding: '10px 12px', borderRadius: 8, textDecoration: 'none', color: '#C3CCD6', fontSize: 14, fontWeight: 600, borderLeft: '3px solid transparent' },
+  sidebarLinkActiva: { backgroundColor: 'rgba(215,255,61,0.12)', color: '#EDF1F5', borderLeft: '3px solid #D7FF3D' },
+  sidebarLinkDeshabilitada: { display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, padding: '10px 12px', borderRadius: 8, color: '#5B6572', fontSize: 14, fontWeight: 600, cursor: 'default' },
+  sidebarBadge: { fontSize: 10, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.04em', color: '#9AA6B4', backgroundColor: 'rgba(255,255,255,0.06)', padding: '2px 8px', borderRadius: 999, flexShrink: 0 },
+  contenido: { flex: 1, maxWidth: 860, margin: '0 auto', padding: '48px 24px', boxSizing: 'border-box' },
   logoWordmark: { fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", fontWeight: 800, fontSize: 22, color: '#EDF1F5', lineHeight: 1 },
   logoTagline: { fontFamily: "'Manrope', system-ui, sans-serif", fontWeight: 600, fontSize: 11, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#9AA6B4', marginTop: 4 },
   titulo: { fontFamily: "'Bricolage Grotesque', system-ui, sans-serif", fontSize: 28, fontWeight: 800, marginBottom: 4 },
